@@ -1,0 +1,6 @@
+{
+  "name": "Draconic Bloodline",
+  "description": "An immersive dark-fantasy Action RPG with procedurally generated gothic dungeons, timing-based real-time combat, rich character customization, epic boss encounters, and a deep lore-driven progression system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
