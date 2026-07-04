@@ -2279,35 +2279,37 @@ export default function DungeonCanvas({
 
         if (!tile.explored) {
           // Draw Pitch Black fog of war
-          ctx.fillStyle = '#09090b';
+          ctx.fillStyle = '#000000';
           ctx.fillRect(screenX, screenY, 32, 32);
           continue;
         }
 
         // Draw Floors
         if (tile.type === 'Floor' || tile.type === 'Chest' || tile.type === 'Stairs' || tile.type === 'Door') {
-          ctx.fillStyle = isLavaTheme ? '#1e1b18' : '#1c1917'; // Magma stone vs cool slate grey
+          // Use semi-transparent fill to let the beautiful procedural environment show through
+          ctx.fillStyle = isLavaTheme ? 'rgba(30, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.2)';
           ctx.fillRect(screenX, screenY, 32, 32);
 
           // Render subtle retro brick borders
-          ctx.strokeStyle = isLavaTheme ? '#2d231b' : '#292524';
+          ctx.strokeStyle = isLavaTheme ? 'rgba(100, 30, 20, 0.4)' : 'rgba(255, 255, 255, 0.05)';
           ctx.lineWidth = 1;
           ctx.strokeRect(screenX, screenY, 32, 32);
         }
 
         // Draw Walls
         if (tile.type === 'Wall') {
-          // Double layered brick shadows
-          ctx.fillStyle = isLavaTheme ? '#311b11' : '#1c1d21'; // Deep reddish brown vs Dark granite
+          // Walls should be opaque to define the dungeon layout clearly
+          ctx.fillStyle = isLavaTheme ? '#2a110a' : '#1e1e24';
           ctx.fillRect(screenX, screenY, 32, 32);
-
-          // Crack detail or lighting highlight
-          ctx.fillStyle = isLavaTheme ? '#5a2512' : '#272a31';
-          ctx.fillRect(screenX, screenY, 32, 6);
+          
+          // Add a faux 3D top edge highlight to make walls pop
+          ctx.fillStyle = isLavaTheme ? '#4a1d10' : '#2d2d36';
+          ctx.fillRect(screenX, screenY, 32, 10);
 
           ctx.strokeStyle = isLavaTheme ? '#1c100a' : '#0e1013';
           ctx.lineWidth = 1.5;
           ctx.strokeRect(screenX, screenY, 32, 32);
+        }
 
           // Wall Decor details
           if (tile.decoration === 'chains') {

@@ -656,6 +656,7 @@ export default function App() {
             muted
             playsInline
             onEnded={() => setScreen('video_intro2')}
+            onError={() => setScreen('video_intro2')}
             className="w-full h-full object-cover"
           />
           <button
@@ -674,6 +675,7 @@ export default function App() {
             muted
             playsInline
             onEnded={() => setScreen('menu')}
+            onError={() => setScreen('menu')}
             className="w-full h-full object-cover"
           />
           <button

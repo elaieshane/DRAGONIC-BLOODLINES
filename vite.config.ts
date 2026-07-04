@@ -10,14 +10,19 @@ const craftpixPlugin = {
     return () => {
       server.middlewares.use((req: any, res: any, next: any) => {
         // Check if this is a craftpix request
-        if (req.url.startsWith('/craftpix-net-')) {
+        if (req.url.includes('craftpix-net-')) {
           // Extract the path without query params
           const urlPath = req.url.split('?')[0];
-          // Resolve to parent Bloodlines directory
-          const filePath = path.join(__dirname, '..', urlPath);
+          const projectDir = path.dirname(__filename);
+          const parentDir = path.dirname(projectDir);
+          const filePath = path.join(parentDir, urlPath);
+          
+          console.log(`[CraftPix] URL: ${urlPath}`);
+          console.log(`[CraftPix] Trying: ${filePath}`);
           
           try {
             if (fs.existsSync(filePath)) {
+              console.log(`[CraftPix] ✓ Found! Serving...`);
               const content = fs.readFileSync(filePath);
               const ext = path.extname(filePath).toLowerCase();
               const mimeTypes: Record<string, string> = {
@@ -30,11 +35,14 @@ const craftpixPlugin = {
               };
               res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
               res.setHeader('Cache-Control', 'public, max-age=3600');
+              res.setHeader('Access-Control-Allow-Origin', '*');
               res.end(content);
               return;
+            } else {
+              console.log(`[CraftPix] ✗ File NOT found`);
             }
           } catch (e) {
-            // Fall through to next middleware
+            console.log(`[CraftPix] Error:`, e);
           }
         }
         next();
