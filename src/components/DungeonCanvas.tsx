@@ -2317,33 +2317,32 @@ export default function DungeonCanvas({
           ctx.strokeRect(screenX, screenY, 32, 32);
         }
 
-          // Wall Decor details
-          if (tile.decoration === 'chains') {
-            ctx.fillStyle = '#71717a';
-            ctx.fillRect(screenX + 14, screenY + 6, 4, 18);
-          } else if (tile.decoration === 'cobweb') {
-            ctx.strokeStyle = '#52525b';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(screenX, screenY + 6);
-            ctx.lineTo(screenX + 16, screenY + 22);
-            ctx.lineTo(screenX + 32, screenY + 6);
-            ctx.stroke();
-          } else if (tile.decoration === 'candelabra') {
-            ctx.fillStyle = '#fbbf24'; // glowing yellow flame
-            ctx.beginPath();
-            ctx.arc(screenX + 16, screenY + 12, 3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#78350f'; // brass stand
-            ctx.fillRect(screenX + 14, screenY + 15, 4, 12);
-          } else if (tile.decoration === 'stained_glass') {
-            // Purple light
-            ctx.fillStyle = '#7c3aed';
-            ctx.fillRect(screenX + 8, screenY + 6, 16, 20);
-          } else if (tile.decoration === 'skull') {
-            ctx.fillStyle = '#e4e4e7';
-            ctx.fillRect(screenX + 11, screenY + 14, 10, 8);
-          }
+        // Wall Decor details
+        if (tile.decoration === 'chains') {
+          ctx.fillStyle = '#71717a';
+          ctx.fillRect(screenX + 14, screenY + 6, 4, 18);
+        } else if (tile.decoration === 'cobweb') {
+          ctx.strokeStyle = '#52525b';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(screenX, screenY + 6);
+          ctx.lineTo(screenX + 16, screenY + 22);
+          ctx.lineTo(screenX + 32, screenY + 6);
+          ctx.stroke();
+        } else if (tile.decoration === 'candelabra') {
+          ctx.fillStyle = '#fbbf24'; // glowing yellow flame
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 12, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#78350f'; // brass stand
+          ctx.fillRect(screenX + 14, screenY + 15, 4, 12);
+        } else if (tile.decoration === 'stained_glass') {
+          // Purple light
+          ctx.fillStyle = '#7c3aed';
+          ctx.fillRect(screenX + 8, screenY + 6, 16, 20);
+        } else if (tile.decoration === 'skull') {
+          ctx.fillStyle = '#e4e4e7';
+          ctx.fillRect(screenX + 11, screenY + 14, 10, 8);
         }
 
         // Draw Hazards
@@ -3642,6 +3641,7 @@ export default function DungeonCanvas({
         ctx.beginPath();
         ctx.arc(psx, psy, player.size + 6, 0, Math.PI * 2);
         ctx.stroke();
+      }
       }
     }
 
