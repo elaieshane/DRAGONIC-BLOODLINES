@@ -417,8 +417,8 @@ export function generateLevel(kingdomIndex: number, floorIndex: number, theme: F
   grid[playerSpawn.y][playerSpawn.x].explored = true;
 
   // Reveal some of the starting area around the player to avoid a black initial viewport
-  for (let dy = -2; dy <= 2; dy++) {
-    for (let dx = -2; dx <= 2; dx++) {
+  for (let dy = -7; dy <= 7; dy++) {
+    for (let dx = -7; dx <= 7; dx++) {
       const rx = playerSpawn.x + dx;
       const ry = playerSpawn.y + dy;
       if (rx >= 0 && rx < width && ry >= 0 && ry < height) {

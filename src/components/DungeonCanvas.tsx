@@ -793,26 +793,24 @@ export default function DungeonCanvas({
     }
 
     // Pre-explore spawn area immediately using level spawn coordinates
-    if (!hasPreRevealedRef.current) {
-      hasPreRevealedRef.current = true;
-      const spawnTileX = level.playerSpawn.x;
-      const spawnTileY = level.playerSpawn.y;
-      const preRevealRadius = 12;
-      for (let dy = -preRevealRadius; dy <= preRevealRadius; dy++) {
-        for (let dx = -preRevealRadius; dx <= preRevealRadius; dx++) {
-          const tx = spawnTileX + dx;
-          const ty = spawnTileY + dy;
-          if (tx >= 0 && tx < level.width && ty >= 0 && ty < level.height) {
-            level.grid[ty][tx].explored = true;
-          }
+    hasPreRevealedRef.current = true;
+    const spawnTileX = level.playerSpawn.x;
+    const spawnTileY = level.playerSpawn.y;
+    const preRevealRadius = 12;
+    for (let dy = -preRevealRadius; dy <= preRevealRadius; dy++) {
+      for (let dx = -preRevealRadius; dx <= preRevealRadius; dx++) {
+        const tx = spawnTileX + dx;
+        const ty = spawnTileY + dy;
+        if (tx >= 0 && tx < level.width && ty >= 0 && ty < level.height) {
+          level.grid[ty][tx].explored = true;
         }
       }
-      setLevel({ ...level });
-      cameraRef.current = {
-        x: spawnTileX * 32 - dimensions.width / 2,
-        y: spawnTileY * 32 - dimensions.height / 2,
-      };
     }
+    setLevel({ ...level });
+    cameraRef.current = {
+      x: spawnTileX * 32 - dimensions.width / 2,
+      y: spawnTileY * 32 - dimensions.height / 2,
+    };
 
     // Spawn companions if unlocked
     const companions: CompanionEntity[] = [];
