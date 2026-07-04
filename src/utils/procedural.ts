@@ -2,13 +2,13 @@ import { LevelData, Tile, TileType, EnemyType, FloorTheme } from '../types';
 import { BESTIARY_DATABASE } from './bestiary_data';
 
 // Initialize cache for fast lookups
-if (!(window as any).BESTIARY_CACHE) {
+if (!(globalThis as any).BESTIARY_CACHE) {
   const cache: Record<string, any[]> = {};
   BESTIARY_DATABASE.forEach(e => {
     if (!cache[e.faction]) cache[e.faction] = [];
     cache[e.faction].push(e);
   });
-  (window as any).BESTIARY_CACHE = cache;
+  (globalThis as any).BESTIARY_CACHE = cache;
 }
 
 interface Room {

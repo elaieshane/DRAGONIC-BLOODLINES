@@ -791,9 +791,9 @@ export default function DungeonCanvas({
       setBossIntroLineIndex(0);
     }
 
-    // Pre-explore spawn area immediately (large radius so first frame is never black)
-    const spawnTileX = Math.floor(player.x / 32);
-    const spawnTileY = Math.floor(player.y / 32);
+    // Pre-explore spawn area immediately using level spawn coordinates
+    const spawnTileX = level.playerSpawn.x;
+    const spawnTileY = level.playerSpawn.y;
     const preRevealRadius = 12;
     for (let dy = -preRevealRadius; dy <= preRevealRadius; dy++) {
       for (let dx = -preRevealRadius; dx <= preRevealRadius; dx++) {
@@ -804,10 +804,10 @@ export default function DungeonCanvas({
         }
       }
     }
-    // Snap camera instantly to player so there is no black-frame during lerp
+    // Snap camera instantly to the level spawn so there is no black-frame during lerp
     cameraRef.current = {
-      x: player.x - dimensions.width / 2,
-      y: player.y - dimensions.height / 2,
+      x: spawnTileX * 32 - dimensions.width / 2,
+      y: spawnTileY * 32 - dimensions.height / 2,
     };
 
     // Spawn companions if unlocked
