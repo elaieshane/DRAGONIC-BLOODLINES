@@ -414,6 +414,18 @@ export function generateLevel(kingdomIndex: number, floorIndex: number, theme: F
 
   // Double check player spawn tile is Floor
   grid[playerSpawn.y][playerSpawn.x].type = 'Floor';
+  grid[playerSpawn.y][playerSpawn.x].explored = true;
+
+  // Reveal some of the starting area around the player to avoid a black initial viewport
+  for (let dy = -2; dy <= 2; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      const rx = playerSpawn.x + dx;
+      const ry = playerSpawn.y + dy;
+      if (rx >= 0 && rx < width && ry >= 0 && ry < height) {
+        grid[ry][rx].explored = true;
+      }
+    }
+  }
 
   // Apply some decoration accents to random walls
   for (let y = 1; y < height - 1; y++) {

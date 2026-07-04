@@ -698,6 +698,7 @@ export default function DungeonCanvas({
 }: DungeonCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasPreRevealedRef = useRef(false);
 
   // Canvas scaling and dimensions
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -792,23 +793,26 @@ export default function DungeonCanvas({
     }
 
     // Pre-explore spawn area immediately using level spawn coordinates
-    const spawnTileX = level.playerSpawn.x;
-    const spawnTileY = level.playerSpawn.y;
-    const preRevealRadius = 12;
-    for (let dy = -preRevealRadius; dy <= preRevealRadius; dy++) {
-      for (let dx = -preRevealRadius; dx <= preRevealRadius; dx++) {
-        const tx = spawnTileX + dx;
-        const ty = spawnTileY + dy;
-        if (tx >= 0 && tx < level.width && ty >= 0 && ty < level.height) {
-          level.grid[ty][tx].explored = true;
+    if (!hasPreRevealedRef.current) {
+      hasPreRevealedRef.current = true;
+      const spawnTileX = level.playerSpawn.x;
+      const spawnTileY = level.playerSpawn.y;
+      const preRevealRadius = 12;
+      for (let dy = -preRevealRadius; dy <= preRevealRadius; dy++) {
+        for (let dx = -preRevealRadius; dx <= preRevealRadius; dx++) {
+          const tx = spawnTileX + dx;
+          const ty = spawnTileY + dy;
+          if (tx >= 0 && tx < level.width && ty >= 0 && ty < level.height) {
+            level.grid[ty][tx].explored = true;
+          }
         }
       }
+      setLevel({ ...level });
+      cameraRef.current = {
+        x: spawnTileX * 32 - dimensions.width / 2,
+        y: spawnTileY * 32 - dimensions.height / 2,
+      };
     }
-    // Snap camera instantly to the level spawn so there is no black-frame during lerp
-    cameraRef.current = {
-      x: spawnTileX * 32 - dimensions.width / 2,
-      y: spawnTileY * 32 - dimensions.height / 2,
-    };
 
     // Spawn companions if unlocked
     const companions: CompanionEntity[] = [];
