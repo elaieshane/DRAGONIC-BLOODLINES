@@ -20,7 +20,7 @@ import { AISystem } from '../systems/AISystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { GameManager } from '../managers/GameManager';
 import { generateEnvironment, EnvironmentMap } from './CraftPixEnvironment';
-import { loadAsset } from '../utils/craftpix';
+import { getEnvironmentAssetURL, getEnvironmentAssetURLs, loadAsset } from '../utils/craftpix';
 
 const mapFloorTheme = (floorTheme: LevelData['floorTheme']): 'dungeon' | 'ruins' | 'cursed' | 'undead' => {
   switch (floorTheme) {
@@ -105,7 +105,9 @@ const drawCraftPixEnvironment = (
   tileSize: number,
   dimensions: { width: number; height: number },
   cx: number,
-  cy: number
+  cy: number,
+  environmentTextureCache: Record<string, HTMLImageElement>,
+  environmentPatternCache: Record<string, CanvasPattern | null>
 ) => {
   environment.tiles.forEach((tile) => {
     const screenX = tile.x * tileSize - cx;
@@ -120,8 +122,26 @@ const drawCraftPixEnvironment = (
       return;
     }
 
-    ctx.fillStyle = getCraftPixTileColor(tile.type, environment.theme);
-    ctx.fillRect(screenX, screenY, tileSize, tileSize);
+    const textureUrl = getEnvironmentAssetURL(environment.theme, tile.type);
+    const textureImage = textureUrl ? environmentTextureCache[textureUrl] : undefined;
+    let usedPattern: CanvasPattern | null = null;
+
+    if (textureImage && textureImage.complete && textureImage.naturalWidth > 0) {
+      const patternKey = `${environment.theme}_${tile.type}`;
+      usedPattern = environmentPatternCache[patternKey] || null;
+      if (!usedPattern) {
+        usedPattern = ctx.createPattern(textureImage, 'repeat');
+        environmentPatternCache[patternKey] = usedPattern;
+      }
+    }
+
+    if (usedPattern) {
+      ctx.fillStyle = usedPattern;
+      ctx.fillRect(screenX, screenY, tileSize, tileSize);
+    } else {
+      ctx.fillStyle = getCraftPixTileColor(tile.type, environment.theme);
+      ctx.fillRect(screenX, screenY, tileSize, tileSize);
+    }
 
     if (tile.type === 'trap') {
       ctx.strokeStyle = '#f59e0b';
@@ -683,7 +703,7 @@ export default function DungeonCanvas({
   const screenShakeRef = useRef(0);
   const lootPauseRef = useRef(0);
   const keysRef = useRef<Set<string>>(new Set());
-  const cameraRef = useRef({ x: 0, y: 0 });
+  const cameraRef = useRef({ x: player.x - 400, y: player.y - 300 });
   
   // Track game time/frames
   const gameFrame = useRef(0);
@@ -763,8 +783,24 @@ export default function DungeonCanvas({
       setBossIntroLineIndex(0);
     }
 
-    // Explored spawn room
-    exploreAroundPlayer(Math.floor(player.x / 32), Math.floor(player.y / 32));
+    // Pre-explore spawn area immediately (large radius so first frame is never black)
+    const spawnTileX = Math.floor(player.x / 32);
+    const spawnTileY = Math.floor(player.y / 32);
+    const preRevealRadius = 12;
+    for (let dy = -preRevealRadius; dy <= preRevealRadius; dy++) {
+      for (let dx = -preRevealRadius; dx <= preRevealRadius; dx++) {
+        const tx = spawnTileX + dx;
+        const ty = spawnTileY + dy;
+        if (tx >= 0 && tx < level.width && ty >= 0 && ty < level.height) {
+          level.grid[ty][tx].explored = true;
+        }
+      }
+    }
+    // Snap camera instantly to player so there is no black-frame during lerp
+    cameraRef.current = {
+      x: player.x - dimensions.width / 2,
+      y: player.y - dimensions.height / 2,
+    };
 
     // Spawn companions if unlocked
     const companions: CompanionEntity[] = [];
@@ -810,6 +846,8 @@ export default function DungeonCanvas({
   }, [level]);
 
   const spriteCacheRef = useRef<Record<string, HTMLImageElement>>({});
+  const environmentTextureCacheRef = useRef<Record<string, HTMLImageElement>>({});
+  const environmentPatternCacheRef = useRef<Record<string, CanvasPattern | null>>({});
 
   useEffect(() => {
     const urls = new Set<string>();
@@ -832,6 +870,24 @@ export default function DungeonCanvas({
         });
     });
   }, [level, player.class]);
+
+  useEffect(() => {
+    const textureUrls = getEnvironmentAssetURLs(environment.theme);
+    textureUrls.forEach((url) => {
+      if (environmentTextureCacheRef.current[url]) return;
+      loadAsset(url)
+        .then((img) => {
+          environmentTextureCacheRef.current[url] = img;
+          environmentPatternCacheRef.current = {};
+        })
+        .catch(() => {
+          // Missing environment texture; fall back to color-only rendering.
+        });
+    });
+  }, [environment.theme]);
+
+  // NOTE: per-frame fog reveal is handled inside checkCollisionsAndTriggers (the game loop).
+  // A separate useEffect here would capture a stale `level` closure and explore the wrong grid.
 
   // Handle Resize of canvas
   useEffect(() => {
@@ -872,9 +928,10 @@ export default function DungeonCanvas({
     return dist < r1 + r2;
   };
 
-  // Explore cells around player to clear Fog
+  // Explore cells around player to clear Fog (called from the game-loop)
   const exploreAroundPlayer = (px: number, py: number) => {
-    const radius = 6;
+    // Radius of 10 tiles gives a ~20-tile wide visible window around the player
+    const radius = 10;
     let gridChanged = false;
     for (let dy = -radius; dy <= radius; dy++) {
       for (let dx = -radius; dx <= radius; dx++) {
@@ -2181,7 +2238,16 @@ export default function DungeonCanvas({
     }
 
     // Draw CraftPix environment tiles behind the level
-    drawCraftPixEnvironment(ctx, environment, TILE_SIZE, dimensions, cx, cy);
+    drawCraftPixEnvironment(
+      ctx,
+      environment,
+      TILE_SIZE,
+      dimensions,
+      cx,
+      cy,
+      environmentTextureCacheRef.current,
+      environmentPatternCacheRef.current
+    );
 
     // Determine viewport coordinates
     const startX = Math.max(0, Math.floor(cx / 32));

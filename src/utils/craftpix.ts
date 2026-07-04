@@ -159,6 +159,63 @@ export function getAssetURL(packKey: keyof typeof CRAFTPIX_ASSETS, assetName: st
   return `/craftpix-${packKey.toLowerCase()}/${assetName}`;
 }
 
+export const ENVIRONMENT_TEXTURE_MAP: Record<
+  'dungeon' | 'ruins' | 'cursed' | 'undead',
+  Record<string, string>
+> = {
+  dungeon: {
+    floor: '/craftpix-net-169442-free-2d-top-down-pixel-dungeon-asset-pack/PNG/walls_floor.png',
+    wall: '/craftpix-net-169442-free-2d-top-down-pixel-dungeon-asset-pack/PNG/walls_floor.png',
+    water: '/craftpix-net-169442-free-2d-top-down-pixel-dungeon-asset-pack/PNG/Water_coasts_animation.png',
+    lava: '/craftpix-net-169442-free-2d-top-down-pixel-dungeon-asset-pack/PNG/fire_animation.png',
+    decoration: '/craftpix-net-169442-free-2d-top-down-pixel-dungeon-asset-pack/PNG/Objects.png',
+    door: '/craftpix-net-169442-free-2d-top-down-pixel-dungeon-asset-pack/PNG/doors_lever_chest_animation.png',
+    trap: '/craftpix-net-169442-free-2d-top-down-pixel-dungeon-asset-pack/PNG/trap_animation.png',
+    chest: '/craftpix-net-169442-free-2d-top-down-pixel-dungeon-asset-pack/PNG/doors_lever_chest_animation.png',
+  },
+  ruins: {
+    floor: '/craftpix-net-934618-free-top-down-ruins-pixel-art/PNG/Assets_texture_shadow_source.png',
+    wall: '/craftpix-net-934618-free-top-down-ruins-pixel-art/PNG/Assets_shadow_source.png',
+    water: '/craftpix-net-934618-free-top-down-ruins-pixel-art/PNG/Assets_texture_shadow_dark_source.png',
+    lava: '/craftpix-net-934618-free-top-down-ruins-pixel-art/PNG/Assets_texture_shadow_dark_source.png',
+    decoration: '/craftpix-net-934618-free-top-down-ruins-pixel-art/PNG/Assets_shadow_source.png',
+    door: '/craftpix-net-934618-free-top-down-ruins-pixel-art/PNG/Assets_texture_shadow_source.png',
+    trap: '/craftpix-net-934618-free-top-down-ruins-pixel-art/PNG/Assets_texture_shadow_dark_source.png',
+    chest: '/craftpix-net-934618-free-top-down-ruins-pixel-art/PNG/Assets_shadow_source.png',
+  },
+  cursed: {
+    floor: '/craftpix-net-958568-free-cursed-land-top-down-pixel-art-tileset/PNG/Ground.png',
+    wall: '/craftpix-net-958568-free-cursed-land-top-down-pixel-art-tileset/PNG/Ground.png',
+    water: '/craftpix-net-958568-free-cursed-land-top-down-pixel-art-tileset/PNG/Water_coasts.png',
+    lava: '/craftpix-net-958568-free-cursed-land-top-down-pixel-art-tileset/PNG/details.png',
+    decoration: '/craftpix-net-958568-free-cursed-land-top-down-pixel-art-tileset/PNG/Objects.png',
+    door: '/craftpix-net-958568-free-cursed-land-top-down-pixel-art-tileset/PNG/bridges.png',
+    trap: '/craftpix-net-958568-free-cursed-land-top-down-pixel-art-tileset/PNG/Objects.png',
+    chest: '/craftpix-net-958568-free-cursed-land-top-down-pixel-art-tileset/PNG/Objects.png',
+  },
+  undead: {
+    floor: '/craftpix-net-695666-free-undead-tileset-top-down-pixel-art/PNG/Objects.png',
+    wall: '/craftpix-net-695666-free-undead-tileset-top-down-pixel-art/PNG/Objects.png',
+    water: '/craftpix-net-695666-free-undead-tileset-top-down-pixel-art/PNG/Objects.png',
+    lava: '/craftpix-net-695666-free-undead-tileset-top-down-pixel-art/PNG/Objects.png',
+    decoration: '/craftpix-net-695666-free-undead-tileset-top-down-pixel-art/PNG/Objects.png',
+    door: '/craftpix-net-695666-free-undead-tileset-top-down-pixel-art/PNG/Objects.png',
+    trap: '/craftpix-net-695666-free-undead-tileset-top-down-pixel-art/PNG/Objects.png',
+    chest: '/craftpix-net-695666-free-undead-tileset-top-down-pixel-art/PNG/Objects.png',
+  },
+};
+
+export function getEnvironmentAssetURL(theme: string, tileType: string): string | null {
+  const assets = ENVIRONMENT_TEXTURE_MAP[theme as keyof typeof ENVIRONMENT_TEXTURE_MAP];
+  return assets?.[tileType] || null;
+}
+
+export function getEnvironmentAssetURLs(theme: string): string[] {
+  const assets = ENVIRONMENT_TEXTURE_MAP[theme as keyof typeof ENVIRONMENT_TEXTURE_MAP];
+  if (!assets) return [];
+  return Array.from(new Set(Object.values(assets)));
+}
+
 /**
  * Preload multiple assets
  */

@@ -1,3 +1,4 @@
+
 /**
  * CraftPix NPC Avatar System
  * Displays NPC avatars with dynamic emotion states from CraftPix medieval pack

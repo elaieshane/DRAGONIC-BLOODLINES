@@ -64,6 +64,20 @@ function hashCoord(x: number, y: number, seed: number = 42): number {
   return Math.abs(h);
 }
 
+function hashString(str: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
+}
+
+function getDeterministicNoise(x: number, y: number, seed: number = 42, salt: string = ''): number {
+  const saltSeed = hashString(salt);
+  return (hashCoord(x, y, seed ^ saltSeed) % 1000) / 1000;
+}
+
 /**
  * Generate procedural dungeon using Perlin-like noise
  */
@@ -96,11 +110,15 @@ export function generateEnvironment(config: EnvironmentConfig): EnvironmentMap {
       }
       // Decorations
       else if (noise > 1 - decorDensity) {
-        tileType = Math.random() > 0.5 ? TileType.DECORATION : TileType.TRAP;
+        const decoRoll = getDeterministicNoise(x, y, seed, 'decor');
+        tileType = decoRoll > 0.5 ? TileType.DECORATION : TileType.TRAP;
       }
       // Occasional doors
       else if (noise > 0.85 && noise < 0.88 && x % 8 === 0) {
-        tileType = TileType.DOOR;
+        const doorRoll = getDeterministicNoise(x, y, seed, 'door');
+        if (doorRoll < 0.5) {
+          tileType = TileType.DOOR;
+        }
       }
 
       tiles.push({
