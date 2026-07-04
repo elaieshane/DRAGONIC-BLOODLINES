@@ -156,7 +156,8 @@ export function loadAsset(assetPath: string): Promise<HTMLImageElement> {
  */
 export function getAssetURL(packKey: keyof typeof CRAFTPIX_ASSETS, assetName: string): string {
   const pack = CRAFTPIX_ASSETS[packKey];
-  return `/craftpix-${packKey.toLowerCase()}/${assetName}`;
+  const packPath = pack.path.replace(/^\.\.\//, '').replace(/\\/g, '/');
+  return `/${packPath}/${assetName}`.replace(/\/+/g, '/');
 }
 
 export const ENVIRONMENT_TEXTURE_MAP: Record<
@@ -212,7 +213,9 @@ export const ENVIRONMENT_TEXTURE_MAP: Record<
 
 export function getEnvironmentAssetURL(theme: string, tileType: string): string | null {
   const assets = ENVIRONMENT_TEXTURE_MAP[theme as keyof typeof ENVIRONMENT_TEXTURE_MAP];
-  return assets?.[tileType] || null;
+  if (!assets) return null;
+  const url = assets[tileType];
+  return url || null;
 }
 
 export function getEnvironmentAssetURLs(theme: string): string[] {
