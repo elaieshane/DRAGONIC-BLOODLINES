@@ -9,13 +9,21 @@ import DungeonCanvas from './components/DungeonCanvas';
 import CharacterSheet from './components/CharacterSheet';
 import SettingsModal from './components/SettingsModal';
 import TutorialScreen from './components/TutorialScreen';
-import { Heart, Zap, Coins, Shield, Trophy, RefreshCw, Volume2, Sparkles, AlertTriangle, Settings, Book } from 'lucide-react';
+import CraftPixShowcase from './components/CraftPixShowcase';
+import { Heart, Zap, Coins, Shield, Trophy, RefreshCw, Volume2, Sparkles, AlertTriangle, Settings, Book, Palette } from 'lucide-react';
 import { BestiarySystem } from './systems/BestiarySystem';
 import { CodexOverlay } from './components/CodexOverlay';
+import { CRAFTPIX_ASSETS } from './utils/craftpix';
 
 import mainBannerImg from './assets/images/gothic_main_banner_1783099342203.jpg';
 import introVideo1 from '../Intro.mp4';
 import introVideo2 from '../dragonic_bloodlines.mp4';
+
+// Load CraftPix assets on startup
+const CRAFTPIX_READY = (() => {
+  // Assets are available in public folder from workspace root
+  return CRAFTPIX_ASSETS;
+})();
 
 export default function App() {
   const [screen, setScreen] = useState<'intro_splash' | 'video_intro1' | 'video_intro2' | 'menu' | 'intro' | 'playing' | 'gameover' | 'victory' | 'loading'>('intro_splash');
@@ -89,6 +97,7 @@ export default function App() {
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCodexOpen, setIsCodexOpen] = useState(false);
+  const [isCraftPixOpen, setIsCraftPixOpen] = useState(false);
   const bestiaryRef = React.useRef<BestiarySystem>(new BestiarySystem());
   const [loadingLore, setLoadingLore] = useState("");
 
@@ -899,6 +908,14 @@ export default function App() {
               >
                 <Book className="w-4 h-4" />
               </button>
+
+              <button
+                onClick={() => { playSound('hit'); setIsCraftPixOpen(!isCraftPixOpen); }}
+                className="p-3 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-yellow-500 border border-yellow-900/30 transition-colors"
+                title="CraftPix Assets & UI Kit"
+              >
+                <Palette className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
@@ -1142,6 +1159,13 @@ export default function App() {
           onUpdateSettings={setSettings}
           onClose={() => setIsSettingsOpen(false)}
         />
+      )}
+
+      {/* CraftPix Asset Showcase & UI Kit Overlay */}
+      {isCraftPixOpen && (
+        <div className="fixed inset-0 bg-black/80 z-50 overflow-auto">
+          <CraftPixShowcase onClose={() => setIsCraftPixOpen(false)} />
+        </div>
       )}
 
     </div>
