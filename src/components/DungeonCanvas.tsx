@@ -19,6 +19,196 @@ import { EnemyFactory } from '../entities/EnemyFactory';
 import { AISystem } from '../systems/AISystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { GameManager } from '../managers/GameManager';
+import { generateEnvironment, EnvironmentMap } from './CraftPixEnvironment';
+import { loadAsset } from '../utils/craftpix';
+
+const mapFloorTheme = (floorTheme: LevelData['floorTheme']): 'dungeon' | 'ruins' | 'cursed' | 'undead' => {
+  switch (floorTheme) {
+    case 'DragonNest':
+    case 'VolcanicWastes':
+    case 'EternalThrone':
+    case 'FrankensteinLab':
+      return 'cursed';
+    case 'CrimsonGraveyard':
+    case 'NecromancerTower':
+    case 'GhoulSwamp':
+    case 'CrocodileSewers':
+    case 'HauntedVillage':
+    case 'RoyalVampirePalace':
+      return 'undead';
+    case 'ForgottenLibrary':
+    case 'ForsakenCathedral':
+    case 'AbandonedMines':
+    case 'BlackKnightFortress':
+    case 'BloodForest':
+    case 'FrozenMountain':
+      return 'ruins';
+    default:
+      return 'dungeon';
+  }
+};
+
+const getCraftPixTileColor = (type: string, theme: string): string => {
+  const colors: Record<string, Record<string, string>> = {
+    dungeon: {
+      floor: '#5a4a3a',
+      wall: '#3d2817',
+      water: '#1a4d7f',
+      lava: '#8b0000',
+      decoration: '#8b6f47',
+      door: '#8b4513',
+      trap: '#cc0000',
+      chest: '#d4af37',
+      empty: '#2a2a2a',
+    },
+    ruins: {
+      floor: '#6b6b6b',
+      wall: '#4a4a4a',
+      water: '#2d5f8d',
+      lava: '#cc5500',
+      decoration: '#9b9b9b',
+      door: '#8b6914',
+      trap: '#ff4444',
+      chest: '#ffd700',
+      empty: '#3a3a3a',
+    },
+    cursed: {
+      floor: '#3a3a4a',
+      wall: '#2a2a3a',
+      water: '#8b008b',
+      lava: '#ff3300',
+      decoration: '#6a6a7a',
+      door: '#4a0e4e',
+      trap: '#ff0000',
+      chest: '#00ff00',
+      empty: '#1a1a2a',
+    },
+    undead: {
+      floor: '#5a5a6a',
+      wall: '#3a3a4a',
+      water: '#2a3a5a',
+      lava: '#8b5a3c',
+      decoration: '#7a7a8a',
+      door: '#3a3a3a',
+      trap: '#aa0000',
+      chest: '#cccccc',
+      empty: '#2a2a3a',
+    },
+  };
+
+  return colors[theme]?.[type] || colors.dungeon[type] || '#000000';
+};
+
+const drawCraftPixEnvironment = (
+  ctx: CanvasRenderingContext2D,
+  environment: EnvironmentMap,
+  tileSize: number,
+  dimensions: { width: number; height: number },
+  cx: number,
+  cy: number
+) => {
+  environment.tiles.forEach((tile) => {
+    const screenX = tile.x * tileSize - cx;
+    const screenY = tile.y * tileSize - cy;
+
+    if (
+      screenX + tileSize < 0 ||
+      screenY + tileSize < 0 ||
+      screenX > dimensions.width ||
+      screenY > dimensions.height
+    ) {
+      return;
+    }
+
+    ctx.fillStyle = getCraftPixTileColor(tile.type, environment.theme);
+    ctx.fillRect(screenX, screenY, tileSize, tileSize);
+
+    if (tile.type === 'trap') {
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(screenX + 6, screenY + 6);
+      ctx.lineTo(screenX + 26, screenY + 26);
+      ctx.moveTo(screenX + 26, screenY + 6);
+      ctx.lineTo(screenX + 6, screenY + 26);
+      ctx.stroke();
+    }
+  });
+};
+
+const CHARACTER_SPRITE_URLS: Record<string, string> = {
+  playerVampireHunter: '/craftpix-net-636003-free-dark-elf-pixel-art-asset-pack/PNG/Dark_Elves/Character1_face1.png',
+  playerRenegadeVampire: '/craftpix-net-636003-free-dark-elf-pixel-art-asset-pack/PNG/Dark_Elves/Character2_face1.png',
+  playerDraconicKnight: '/craftpix-net-636003-free-dark-elf-pixel-art-asset-pack/PNG/Dark_Elves/Character3_face1.png',
+  playerElvenRanger: '/craftpix-net-636003-free-dark-elf-pixel-art-asset-pack/PNG/Dark_Elves/Character4_face1.png',
+  playerOrcBerserker: '/craftpix-net-790760-free-halfling-characters-pixel-art/PNG/Halflings2/Idle.png',
+  playerArcaneSorceress: '/craftpix-net-280097-free-gorgon-pixel-art-character-sprite-sheets/Gorgon_2/Idle_2.png',
+  enemyWerewolf: '/craftpix-net-248468-free-werewolf-sprite-sheets-pixel-art/Black_Werewolf/Idle.png',
+  enemyWerewolfKing: '/craftpix-net-248468-free-werewolf-sprite-sheets-pixel-art/Black_Werewolf/Run.png',
+  enemySkeleton: '/craftpix-net-957123-free-skeleton-pixel-art-sprite-sheets/Skeleton_Warrior/Idle.png',
+  enemyDemon: '/craftpix-net-492723-free-demon-characters-pixel-art/PNG/Demon_warriors/Idle.png',
+  enemyGorgon: '/craftpix-net-280097-free-gorgon-pixel-art-character-sprite-sheets/Gorgon_1/Idle.png',
+  enemyVampireLord: '/craftpix-net-636003-free-dark-elf-pixel-art-asset-pack/PNG/Dark_Elves/Character5_face1.png',
+  enemyDragonCultist: '/craftpix-net-492723-free-demon-characters-pixel-art/PNG/Demon_warriors/Attack_1.png',
+};
+
+const getEnemySpriteURL = (type: string, name: string, faction: Faction): string | null => {
+  const lowerName = name.toLowerCase();
+
+  if (/werewolf|lycan/.test(lowerName) || /werewolf/i.test(type)) {
+    return CHARACTER_SPRITE_URLS.enemyWerewolf;
+  }
+  if (/skeleton|bone|ghoul|undead|lich|corpse/.test(lowerName) || /skeleton/i.test(type)) {
+    return CHARACTER_SPRITE_URLS.enemySkeleton;
+  }
+  if (/gorgon/.test(lowerName) || /gorgon/i.test(type)) {
+    return CHARACTER_SPRITE_URLS.enemyGorgon;
+  }
+  if (/vampire|dracula|count|lord|nosferatu/.test(lowerName) || /vampire/i.test(type)) {
+    return CHARACTER_SPRITE_URLS.enemyVampireLord;
+  }
+  if (/cultist|demon|imp|succubus|abyss|hell|infernal/.test(lowerName) || faction === 'Demons') {
+    return CHARACTER_SPRITE_URLS.enemyDemon;
+  }
+  if (/cultist/.test(lowerName)) {
+    return CHARACTER_SPRITE_URLS.enemyDragonCultist;
+  }
+  if (/dragon|drake|wyrm/.test(lowerName)) {
+    return CHARACTER_SPRITE_URLS.enemyDemon;
+  }
+
+  return null;
+};
+
+const getPlayerSpriteURL = (player: PlayerState): string | null => {
+  switch (player.class) {
+    case 'VampireHunter':
+      return CHARACTER_SPRITE_URLS.playerVampireHunter;
+    case 'RenegadeVampire':
+      return CHARACTER_SPRITE_URLS.playerRenegadeVampire;
+    case 'DraconicKnight':
+      return CHARACTER_SPRITE_URLS.playerDraconicKnight;
+    case 'ElvenRanger':
+      return CHARACTER_SPRITE_URLS.playerElvenRanger;
+    case 'OrcBerserker':
+      return CHARACTER_SPRITE_URLS.playerOrcBerserker;
+    case 'ArcaneSorceress':
+      return CHARACTER_SPRITE_URLS.playerArcaneSorceress;
+    default:
+      return null;
+  }
+};
+
+const drawSpriteOnCanvas = (
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  sx: number,
+  sy: number,
+  size: number
+) => {
+  const drawSize = Math.max(size * 2.2, 24);
+  ctx.drawImage(image, sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize);
+};
 
 const ENEMY_HUES: Array<[RegExp, string]> = [
   [/flame|fire|lava|ash|ember|infernal|hell|crown|dragon|drake|wyrm/i, '#c2451f'],
@@ -497,6 +687,14 @@ export default function DungeonCanvas({
   
   // Track game time/frames
   const gameFrame = useRef(0);
+  const [environment, setEnvironment] = useState<EnvironmentMap>(() =>
+    generateEnvironment({
+      width: level.width,
+      height: level.height,
+      seed: (level.kingdomIndex || 1) * 10000 + level.floorIndex * 173,
+      theme: mapFloorTheme(level.floorTheme),
+    })
+  );
 
   // Companion system representation
   interface CompanionEntity {
@@ -599,7 +797,41 @@ export default function DungeonCanvas({
       });
     }
     companionsRef.current = companions;
-  }, [level.floorIndex]);
+
+    const theme = mapFloorTheme(level.floorTheme);
+    setEnvironment(
+      generateEnvironment({
+        width: level.width,
+        height: level.height,
+        seed: (level.kingdomIndex || 1) * 10000 + level.floorIndex * 173,
+        theme,
+      })
+    );
+  }, [level]);
+
+  const spriteCacheRef = useRef<Record<string, HTMLImageElement>>({});
+
+  useEffect(() => {
+    const urls = new Set<string>();
+    const playerUrl = getPlayerSpriteURL(player);
+    if (playerUrl) urls.add(playerUrl);
+
+    level.enemySpawns.forEach((spawn) => {
+      const url = getEnemySpriteURL(spawn.type, spawn.type, 'Uncategorized');
+      if (url) urls.add(url);
+    });
+
+    urls.forEach((url) => {
+      if (spriteCacheRef.current[url]) return;
+      loadAsset(url)
+        .then((img) => {
+          spriteCacheRef.current[url] = img;
+        })
+        .catch(() => {
+          // Asset may not exist for all enemy types; fallback to procedural drawing.
+        });
+    });
+  }, [level, player.class]);
 
   // Handle Resize of canvas
   useEffect(() => {
@@ -1948,6 +2180,9 @@ export default function DungeonCanvas({
       cy += (Math.random() - 0.5) * screenShakeRef.current;
     }
 
+    // Draw CraftPix environment tiles behind the level
+    drawCraftPixEnvironment(ctx, environment, TILE_SIZE, dimensions, cx, cy);
+
     // Determine viewport coordinates
     const startX = Math.max(0, Math.floor(cx / 32));
     const endX = Math.min(level.width, Math.ceil((cx + dimensions.width) / 32));
@@ -2307,9 +2542,18 @@ export default function DungeonCanvas({
       ctx.arc(sx, sy + e.size - 2, e.size * 0.8, 0, Math.PI * 2);
       ctx.fill();
 
-      drawEnemySigil(ctx, e, sx, sy, gameFrame.current);
+      const enemySpriteUrl = getEnemySpriteURL(e.type, e.name, e.faction);
+      const enemySprite = enemySpriteUrl ? spriteCacheRef.current[enemySpriteUrl] : undefined;
+      const enemySpriteDrawn = !!enemySprite && enemySprite.complete && enemySprite.naturalWidth > 0;
 
-      if (e.type === 'DragonCultist') {
+      if (enemySpriteDrawn) {
+        drawSpriteOnCanvas(ctx, enemySprite!, sx, sy, e.size * 1.2);
+      } else {
+        drawEnemySigil(ctx, e, sx, sy, gameFrame.current);
+      }
+
+      if (!enemySpriteDrawn) {
+        if (e.type === 'DragonCultist') {
         // Orange cultist with dragon mask and staff
         ctx.fillStyle = '#991b1b';
         ctx.beginPath();
@@ -3084,6 +3328,7 @@ export default function DungeonCanvas({
       } else {
         drawProceduralEnemyBody(ctx, e, sx, sy, gameFrame.current);
       }
+    }
 
       // Enemy HP Bar
       const hpBarW = e.size * 2;
@@ -3139,10 +3384,16 @@ export default function DungeonCanvas({
     ctx.arc(psx, psy + 10, 12, 0, Math.PI * 2);
     ctx.fill();
 
+    const playerSpriteUrl = getPlayerSpriteURL(player);
+    const playerSprite = playerSpriteUrl ? spriteCacheRef.current[playerSpriteUrl] : undefined;
+    const playerSpriteDrawn = !!playerSprite && playerSprite.complete && playerSprite.naturalWidth > 0;
+
     // Invincibility flashing flicker
     const isInvincible = player.dashActiveTime > 0;
     if (!isInvincible || gameFrame.current % 4 !== 0) {
-      
+      if (playerSpriteDrawn) {
+        drawSpriteOnCanvas(ctx, playerSprite!, psx, psy, player.size * 1.3);
+      } else {
       // 1. Cape (drawn behind body)
       ctx.fillStyle = player.customization?.capeColor || '#991b1b';
       ctx.beginPath();
@@ -3548,4 +3799,5 @@ export default function DungeonCanvas({
 
     </div>
   );
+}
 }
