@@ -3890,4 +3890,3 @@ export default function DungeonCanvas({
     </div>
   );
 }
-}
