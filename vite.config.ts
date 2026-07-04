@@ -2,10 +2,45 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
+import fs from 'fs';
+
+const craftpixPlugin = {
+  name: 'craftpix-serve',
+  configureServer(server: any) {
+    return () => {
+      server.middlewares.use((req: any, res: any, next: any) => {
+        const craftpixMatch = req.url.match(/^\/craftpix-net-[^/]+\//);
+        if (craftpixMatch) {
+          const filePath = path.join(__dirname, '..', req.url);
+          try {
+            if (fs.existsSync(filePath)) {
+              const content = fs.readFileSync(filePath);
+              const ext = path.extname(filePath).toLowerCase();
+              const mimeTypes: Record<string, string> = {
+                '.png': 'image/png',
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
+                '.gif': 'image/gif',
+                '.webp': 'image/webp',
+                '.svg': 'image/svg+xml',
+              };
+              res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+              res.end(content);
+              return;
+            }
+          } catch (e) {
+            // Fallback to next middleware
+          }
+        }
+        next();
+      });
+    };
+  },
+};
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), craftpixPlugin],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
