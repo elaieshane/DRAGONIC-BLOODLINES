@@ -52,6 +52,22 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    build: {
+      // Optimize CSS and JS output for faster loading
+      cssMinify: 'lightningcss',
+      minify: 'terser',
+      // Configure code splitting to reduce initial bundle size
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Split vendor code into separate chunk for better caching
+            vendor: ['react', 'react-dom'],
+          },
+        },
+      },
+      // Reduce CSS inlining to allow better parallelization of font loading
+      cssCodeSplit: true,
+    },
     server: {
       // Allow the dev server to serve files from the parent Bloodlines folder
       // so all /craftpix-net-* URLs resolve to the actual asset packs.
