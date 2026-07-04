@@ -9,11 +9,447 @@ import {
   Tile, 
   Item, 
   EnemyType,
+  Faction,
   Rarity,
   GameSettings
 } from '../types';
 import { playSound } from './SoundEffects';
 import { generateRandomItem } from '../utils/procedural';
+import { EnemyFactory } from '../entities/EnemyFactory';
+import { AISystem } from '../systems/AISystem';
+import { CombatSystem } from '../systems/CombatSystem';
+import { GameManager } from '../managers/GameManager';
+
+const ENEMY_HUES: Array<[RegExp, string]> = [
+  [/flame|fire|lava|ash|ember|infernal|hell|crown|dragon|drake|wyrm/i, '#c2451f'],
+  [/frost|ice|snow|winter|yuki|glacier/i, '#5fb8c9'],
+  [/storm|thunder|wind|tengu|harpy|lightning/i, '#7a6fd0'],
+  [/crystal|gem|prism/i, '#4fbfa8'],
+  [/shadow|night|void|dark|abyss|hollow|ghost|specter/i, '#6a4d9c'],
+  [/sun|gold|holy|light|celestial|seraph|sol|angel/i, '#d9a441'],
+  [/moon|silver|lunar|blood moon|moon/i, '#b9c2d0'],
+  [/bone|skeleton|corpse|death|lich|ghoul/i, '#cfc6a8'],
+  [/sand|desert|scarab|anubis/i, '#c99a5b'],
+  [/sea|water|leviathan|kraken|coral|siren|merrow/i, '#3d84b8'],
+  [/forest|leaf|dryad|treant|vine|thorn|mushroom/i, '#5f9457'],
+  [/blood|crimson|vampire|bat|night/i, '#8c1f28'],
+  [/poison|plague|acid|toxic/i, '#7a9c3a'],
+  [/eldritch|eye|dream|reality|architect|choir|watcher|maw/i, '#4a2e6e'],
+];
+
+function hash(str: string) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
+}
+
+function pick<T>(seed: string, arr: T[], salt = '') {
+  return arr[hash(seed + salt) % arr.length];
+}
+
+function colorForName(name: string, fallback: string) {
+  for (const [re, hex] of ENEMY_HUES) {
+    if (re.test(name)) return hex;
+  }
+  return fallback;
+}
+
+function lighten(hex: string, amt: number) {
+  const num = parseInt(hex.slice(1), 16);
+  let r = (num >> 16) + amt;
+  let g = ((num >> 8) & 0xff) + amt;
+  let b = (num & 0xff) + amt;
+  r = Math.min(255, Math.max(0, r));
+  g = Math.min(255, Math.max(0, g));
+  b = Math.min(255, Math.max(0, b));
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+function choose<T>(seed: string, val: T | T[], salt: string) {
+  if (!Array.isArray(val)) return val;
+  return pick(seed, val, 'feat' + salt);
+}
+
+function getEnemyBodyType(name: string, faction: Faction) {
+  const value = name.toLowerCase();
+  if (/dragon|drake|wyrm|grav?e|leviathan|serpent|crocodile/i.test(value)) return 'dragon';
+  if (/vampire|blood|dracula|count|succubus|thrall|night/i.test(value)) return 'vampire';
+  if (/wolf|lycan|fenrir|werewolf/i.test(value)) return 'lycan';
+  if (/ghost|hollow|spirit|specter|wraith|phantom/i.test(value)) return 'spirit';
+  if (/zombie|ghoul|frankenstein|monster|cursed/i.test(value)) return 'undead';
+  if (/sea|merrow|siren|kraken|leviathan|crocodile/i.test(value)) return 'sea';
+  if (/angel|seraph|holy|celestial/i.test(value)) return 'celestial';
+  if (/gargoyle|stone|watcher/i.test(value)) return 'gargoyle';
+  if (/abyss|void|reality|architect|eldritch|night terror|dream/i.test(value)) return 'abyssal';
+  if (/forest|dryad|treant|mother tree|vine|thorn/i.test(value)) return 'forest';
+  if (/imp|demon|hell|ash|demon|infernal/i.test(value)) return 'demon';
+  if (/elf|sentinel|spellblade|matriarch/i.test(value)) return 'elf';
+  if (/orc|raider|shaman|warlord/i.test(value)) return 'orc';
+  return faction === 'Dragons' ? 'dragon' : faction === 'Vampires' ? 'vampire' : faction === 'Lycans' ? 'lycan' : faction === 'SeaCreatures' ? 'sea' : faction === 'Celestials' ? 'celestial' : faction === 'Necromancy' ? 'undead' : faction === 'Abyssal' ? 'abyssal' : faction === 'Elves' ? 'elf' : faction === 'Orcs' ? 'orc' : 'spirit';
+}
+
+function drawEnemySigil(ctx: CanvasRenderingContext2D, e: Enemy, sx: number, sy: number, frame: number) {
+  const base = colorForName(e.name, e.color || '#8b5cf6');
+  const light = lighten(base, 45);
+  const dark = lighten(base, -55);
+  const ringColor = e.isBoss ? '#d9a441' : lighten(base, 20);
+  const auraStrength = e.isBoss ? 0.25 : 0.12;
+  const pulse = Math.sin(frame * 0.08) * 2;
+  const type = getEnemyBodyType(e.name, e.faction);
+
+  ctx.save();
+  ctx.translate(sx, sy);
+
+  // Outer rune ring
+  ctx.save();
+  ctx.strokeStyle = ringColor;
+  ctx.lineWidth = e.isBoss ? 3.5 : 2;
+  ctx.setLineDash(e.isBoss ? [5, 4] : [3, 3]);
+  ctx.beginPath();
+  ctx.arc(0, 0, e.size * 1.3 + pulse, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  // Core body
+  ctx.fillStyle = dark;
+  ctx.beginPath();
+  ctx.arc(0, 0, e.size * 0.85, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Secondary center glow
+  ctx.fillStyle = base;
+  ctx.beginPath();
+  ctx.arc(0, -e.size * 0.15, e.size * 0.35, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Add body-type glyphs
+  ctx.strokeStyle = light;
+  ctx.fillStyle = light;
+  ctx.lineWidth = 1.8;
+  ctx.setLineDash([]);
+
+  if (type === 'dragon') {
+    ctx.beginPath();
+    ctx.moveTo(-e.size * 0.9, -e.size * 0.3);
+    ctx.lineTo(-e.size * 1.2, -e.size * 0.9);
+    ctx.lineTo(-e.size * 0.6, -e.size * 0.8);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(e.size * 0.9, -e.size * 0.3);
+    ctx.lineTo(e.size * 1.2, -e.size * 0.9);
+    ctx.lineTo(e.size * 0.6, -e.size * 0.8);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, -e.size * 0.95);
+    ctx.lineTo(0, -e.size * 0.35);
+    ctx.stroke();
+  } else if (type === 'vampire') {
+    ctx.beginPath();
+    ctx.moveTo(-e.size * 0.8, 0);
+    ctx.quadraticCurveTo(-e.size * 1.4, -e.size * 0.6, -e.size * 0.7, -e.size * 0.3);
+    ctx.lineTo(-e.size * 0.4, 0);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(e.size * 0.8, 0);
+    ctx.quadraticCurveTo(e.size * 1.4, -e.size * 0.6, e.size * 0.7, -e.size * 0.3);
+    ctx.lineTo(e.size * 0.4, 0);
+    ctx.stroke();
+    ctx.fillRect(-2, -e.size * 0.1, 4, e.size * 0.3);
+  } else if (type === 'lycan') {
+    ctx.beginPath();
+    ctx.moveTo(-e.size * 0.7, -e.size * 0.9);
+    ctx.lineTo(-e.size * 1.1, -e.size * 1.4);
+    ctx.lineTo(-e.size * 0.2, -e.size * 0.8);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(e.size * 0.7, -e.size * 0.9);
+    ctx.lineTo(e.size * 1.1, -e.size * 1.4);
+    ctx.lineTo(e.size * 0.2, -e.size * 0.8);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-e.size * 0.3, -e.size * 0.55);
+    ctx.lineTo(0, -e.size * 0.3);
+    ctx.lineTo(e.size * 0.3, -e.size * 0.55);
+    ctx.stroke();
+  } else if (type === 'sea') {
+    ctx.beginPath();
+    ctx.moveTo(-e.size * 0.8, 0);
+    ctx.quadraticCurveTo(-e.size * 1.1, e.size * 0.6, -e.size * 0.2, e.size * 0.4);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(e.size * 0.8, 0);
+    ctx.quadraticCurveTo(e.size * 1.1, e.size * 0.6, e.size * 0.2, e.size * 0.4);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, e.size * 0.55, e.size * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (type === 'abyssal') {
+    ctx.beginPath();
+    ctx.arc(0, 0, e.size * 0.4, 0, Math.PI * 1.2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, e.size * 0.6, Math.PI * 1.4, Math.PI * 2.6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(-e.size * 0.4, -e.size * 0.2, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(e.size * 0.4, -e.size * 0.2, 2, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (type === 'spirit') {
+    ctx.beginPath();
+    ctx.moveTo(-e.size * 0.4, -e.size * 0.8);
+    ctx.quadraticCurveTo(-e.size * 0.6, -e.size * 1.4, 0, -e.size * 1.1);
+    ctx.quadraticCurveTo(e.size * 0.6, -e.size * 1.4, e.size * 0.4, -e.size * 0.8);
+    ctx.stroke();
+    ctx.fillRect(-1, -e.size * 0.2, 2, e.size * 0.4);
+  } else if (type === 'undead') {
+    ctx.beginPath();
+    ctx.moveTo(-e.size * 0.6, -e.size * 0.2);
+    ctx.lineTo(-e.size * 0.95, e.size * 0.4);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(e.size * 0.6, -e.size * 0.2);
+    ctx.lineTo(e.size * 0.95, e.size * 0.4);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, e.size * 0.3, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (type === 'celestial') {
+    ctx.beginPath();
+    ctx.moveTo(0, -e.size * 1.1);
+    ctx.lineTo(0, -e.size * 0.3);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-e.size * 0.6, -e.size * 0.1);
+    ctx.lineTo(e.size * 0.6, -e.size * 0.1);
+    ctx.stroke();
+    ctx.fillRect(-e.size * 0.15, -e.size * 0.5, e.size * 0.3, e.size * 0.2);
+  }
+
+  // Eyes / focus points
+  ctx.fillStyle = light;
+  ctx.beginPath();
+  ctx.arc(-e.size * 0.25, -e.size * 0.2, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(e.size * 0.25, -e.size * 0.2, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Aura halo behind the body
+  ctx.save();
+  ctx.globalAlpha = auraStrength;
+  ctx.fillStyle = base;
+  ctx.beginPath();
+  ctx.arc(0, 0, e.size * 1.24 + Math.abs(pulse), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+function drawProceduralEnemyBody(ctx: CanvasRenderingContext2D, e: Enemy, sx: number, sy: number, frame: number) {
+  const base = colorForName(e.name, e.color || '#8b5cf6');
+  const light = lighten(base, 55);
+  const dark = lighten(base, -65);
+  const bodyType = getEnemyBodyType(e.name, e.faction);
+  const s = e.size;
+  const bob = Math.sin(frame * 0.08 + hash(e.id) % 6) * 1.5;
+  const breathe = Math.sin(frame * 0.06 + hash(e.name) % 8) * 1.2;
+
+  ctx.save();
+  ctx.translate(sx, sy + bob);
+
+  if (bodyType === 'dragon') {
+    ctx.fillStyle = dark;
+    ctx.beginPath();
+    ctx.moveTo(-s * 1.1, -s * 0.1);
+    ctx.lineTo(-s * 2.0, -s * 0.95 - breathe);
+    ctx.lineTo(-s * 0.35, -s * 0.55);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(s * 1.1, -s * 0.1);
+    ctx.lineTo(s * 2.0, -s * 0.95 + breathe);
+    ctx.lineTo(s * 0.35, -s * 0.55);
+    ctx.fill();
+    ctx.fillStyle = base;
+    ctx.beginPath();
+    ctx.ellipse(0, s * 0.1, s * 0.95, s * 0.75, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = light;
+    [-0.55, 0, 0.55].forEach(offset => {
+      ctx.beginPath();
+      ctx.moveTo(s * offset, -s * 0.55);
+      ctx.lineTo(s * (offset + 0.16), -s * 1.08);
+      ctx.lineTo(s * (offset + 0.3), -s * 0.45);
+      ctx.fill();
+    });
+    ctx.fillStyle = base;
+    ctx.beginPath();
+    ctx.arc(0, -s * 0.78, s * 0.52, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = light;
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.35, -s * 1.05);
+    ctx.lineTo(-s * 0.68, -s * 1.55);
+    ctx.lineTo(-s * 0.1, -s * 1.18);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(s * 0.35, -s * 1.05);
+    ctx.lineTo(s * 0.68, -s * 1.55);
+    ctx.lineTo(s * 0.1, -s * 1.18);
+    ctx.fill();
+    ctx.fillStyle = '#fde68a';
+    ctx.fillRect(-s * 0.25, -s * 0.85, 3, 3);
+    ctx.fillRect(s * 0.13, -s * 0.85, 3, 3);
+  } else if (bodyType === 'orc') {
+    ctx.fillStyle = '#2f3f1f';
+    ctx.fillRect(-s * 0.8, -s * 0.05, s * 1.6, s * 1.05);
+    ctx.fillStyle = base;
+    ctx.beginPath();
+    ctx.ellipse(0, -s * 0.35, s * 0.72, s * 0.58, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = light;
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.45, -s * 0.25);
+    ctx.lineTo(-s * 0.85, -s * 0.15);
+    ctx.lineTo(-s * 0.35, -s * 0.05);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(s * 0.45, -s * 0.25);
+    ctx.lineTo(s * 0.85, -s * 0.15);
+    ctx.lineTo(s * 0.35, -s * 0.05);
+    ctx.fill();
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(-s * 0.35, -s * 0.12, 3, 6);
+    ctx.fillRect(s * 0.2, -s * 0.12, 3, 6);
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(s * 0.82, s * 0.55);
+    ctx.lineTo(s * 1.55, -s * 0.75);
+    ctx.stroke();
+    ctx.fillStyle = '#71717a';
+    ctx.fillRect(s * 1.35, -s * 1.0, s * 0.45, s * 0.35);
+  } else if (bodyType === 'elf') {
+    ctx.fillStyle = dark;
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.55, -s * 0.05);
+    ctx.lineTo(0, s * 1.05);
+    ctx.lineTo(s * 0.55, -s * 0.05);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = base;
+    ctx.fillRect(-s * 0.42, -s * 0.05, s * 0.84, s * 0.95);
+    ctx.fillStyle = light;
+    ctx.beginPath();
+    ctx.arc(0, -s * 0.65, s * 0.42, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.38, -s * 0.72);
+    ctx.lineTo(-s * 0.95, -s * 0.98);
+    ctx.lineTo(-s * 0.48, -s * 0.48);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(s * 0.38, -s * 0.72);
+    ctx.lineTo(s * 0.95, -s * 0.98);
+    ctx.lineTo(s * 0.48, -s * 0.48);
+    ctx.fill();
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(s * 0.82, -s * 0.08, s * 0.58, -Math.PI / 2, Math.PI / 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(s * 0.82, -s * 0.66);
+    ctx.lineTo(s * 0.82, s * 0.5);
+    ctx.stroke();
+  } else if (bodyType === 'undead') {
+    ctx.fillStyle = dark;
+    ctx.fillRect(-s * 0.62, -s * 0.02, s * 1.24, s * 1.02);
+    ctx.fillStyle = light;
+    ctx.beginPath();
+    ctx.arc(0, -s * 0.58, s * 0.48, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(-s * 0.25, -s * 0.68, 4, 4);
+    ctx.fillRect(s * 0.08, -s * 0.68, 4, 4);
+    ctx.strokeStyle = light;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.75, s * 0.08);
+    ctx.lineTo(s * 0.75, s * 0.75);
+    ctx.moveTo(s * 0.75, s * 0.08);
+    ctx.lineTo(-s * 0.75, s * 0.75);
+    ctx.stroke();
+  } else if (bodyType === 'lycan') {
+    ctx.fillStyle = dark;
+    ctx.beginPath();
+    ctx.ellipse(0, s * 0.15, s * 0.75, s * 0.95, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = base;
+    ctx.beginPath();
+    ctx.arc(0, -s * 0.58, s * 0.48, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.35, -s * 0.9);
+    ctx.lineTo(-s * 0.7, -s * 1.4);
+    ctx.lineTo(-s * 0.1, -s * 0.95);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(s * 0.35, -s * 0.9);
+    ctx.lineTo(s * 0.7, -s * 1.4);
+    ctx.lineTo(s * 0.1, -s * 0.95);
+    ctx.fill();
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(-2, -s * 0.32, 2, 5);
+    ctx.fillRect(2, -s * 0.32, 2, 5);
+  } else {
+    const isCaster = bodyType === 'spirit' || bodyType === 'abyssal' || bodyType === 'celestial';
+    if (isCaster) {
+      ctx.save();
+      ctx.globalAlpha = bodyType === 'spirit' ? 0.72 : 0.95;
+    }
+    ctx.fillStyle = dark;
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.65, -s * 0.15);
+    ctx.lineTo(-s * 0.9, s * 0.98);
+    ctx.lineTo(s * 0.9, s * 0.98);
+    ctx.lineTo(s * 0.65, -s * 0.15);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = base;
+    ctx.beginPath();
+    ctx.ellipse(0, s * 0.1, s * 0.58, s * 0.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = light;
+    ctx.beginPath();
+    ctx.arc(0, -s * 0.65, s * 0.42, 0, Math.PI * 2);
+    ctx.fill();
+    if (bodyType === 'demon' || bodyType === 'gargoyle') {
+      ctx.fillStyle = dark;
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.3, -s * 0.95);
+      ctx.lineTo(-s * 0.65, -s * 1.45);
+      ctx.lineTo(-s * 0.05, -s * 1.05);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(s * 0.3, -s * 0.95);
+      ctx.lineTo(s * 0.65, -s * 1.45);
+      ctx.lineTo(s * 0.05, -s * 1.05);
+      ctx.fill();
+    }
+    if (isCaster) ctx.restore();
+  }
+
+  ctx.fillStyle = '#fef3c7';
+  ctx.fillRect(-s * 0.2, -s * 0.7, 3, 3);
+  ctx.fillRect(s * 0.08, -s * 0.7, 3, 3);
+  ctx.restore();
+}
 
 interface DungeonCanvasProps {
   player: PlayerState;
@@ -26,6 +462,7 @@ interface DungeonCanvasProps {
   isSheetOpen: boolean;
   gameActive: boolean;
   settings: GameSettings;
+  onEnemyKilled?: (typeId: string) => void;
 }
 
 export default function DungeonCanvas({
@@ -38,7 +475,8 @@ export default function DungeonCanvas({
   onVictory,
   isSheetOpen,
   gameActive,
-  settings
+  settings,
+  onEnemyKilled,
 }: DungeonCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -53,6 +491,7 @@ export default function DungeonCanvas({
   const damageNumbersRef = useRef<DamageNumber[]>([]);
   const enemiesRef = useRef<Enemy[]>([]);
   const screenShakeRef = useRef(0);
+  const lootPauseRef = useRef(0);
   const keysRef = useRef<Set<string>>(new Set());
   const cameraRef = useRef({ x: 0, y: 0 });
   
@@ -84,170 +523,24 @@ export default function DungeonCanvas({
     }[];
   } | null>(null);
 
+  // Cinematic Overlays
+  const [showFloorBanner, setShowFloorBanner] = useState(false);
+  const [bossIntroActive, setBossIntroActive] = useState(false);
+  const [bossIntroTextLines, setBossIntroTextLines] = useState<string[]>([]);
+  const [bossIntroLineIndex, setBossIntroLineIndex] = useState(0);
+
   // Sync enemies on level load
   useEffect(() => {
-    // Spawn concrete enemy instances from spawns
+    // Spawn concrete enemy instances from spawns using the new Factory
     const spawnedEnemies = level.enemySpawns.map((s, idx) => {
-      let maxHp = 30;
-      let dmg = 8;
-      let spd = 1.0;
-      let name: string = s.type;
-
-      switch (s.type) {
-        case 'Bat':
-          maxHp = 15 + level.floorIndex * 4;
-          dmg = 5 + level.floorIndex * 2;
-          spd = 1.6;
-          name = 'Crypt Bat';
-          break;
-        case 'Thrall':
-          maxHp = 30 + level.floorIndex * 6;
-          dmg = 8 + level.floorIndex * 3;
-          spd = 1.0;
-          name = 'Vampiric Thrall';
-          break;
-        case 'Skeleton':
-          maxHp = 25 + level.floorIndex * 5;
-          dmg = 7 + level.floorIndex * 2;
-          spd = 0.8;
-          name = 'Skeletal Guard';
-          break;
-        case 'Gargoyle':
-          maxHp = 45 + level.floorIndex * 8;
-          dmg = 12 + level.floorIndex * 4;
-          spd = 0.6; // Very slow until awaken
-          name = 'Cathedral Gargoyle';
-          break;
-        case 'Mage':
-          maxHp = 35 + level.floorIndex * 6;
-          dmg = 10 + level.floorIndex * 3;
-          spd = 0.9;
-          name = 'Shadow Necromancer';
-          break;
-        case 'Hatchling':
-          maxHp = 40 + level.floorIndex * 7;
-          dmg = 11 + level.floorIndex * 3;
-          spd = 1.2;
-          name = 'Dragun Hatchling';
-          break;
-        case 'BloodFiend':
-          maxHp = 55 + level.floorIndex * 9;
-          dmg = 14 + level.floorIndex * 4;
-          spd = 0.8;
-          name = 'Beastblood Fiend';
-          break;
-        case 'DragonCultist':
-          maxHp = 35 + level.floorIndex * 6;
-          dmg = 10 + level.floorIndex * 3;
-          spd = 1.1;
-          name = 'Draconic Cultist';
-          break;
-        case 'Werewolf':
-          maxHp = 42 + level.floorIndex * 8;
-          dmg = 12 + level.floorIndex * 4;
-          spd = 1.35;
-          name = 'Shadow Werewolf';
-          break;
-        case 'Zombie':
-          maxHp = 36 + level.floorIndex * 5;
-          dmg = 8 + level.floorIndex * 2;
-          spd = 0.65;
-          name = 'Eerie Zombie';
-          break;
-        case 'Ghost':
-          maxHp = 22 + level.floorIndex * 4;
-          dmg = 8 + level.floorIndex * 3;
-          spd = 1.15;
-          name = 'Spectral Ghost';
-          break;
-        case 'Hollow':
-          maxHp = 28 + level.floorIndex * 5;
-          dmg = 9 + level.floorIndex * 3;
-          spd = 1.0;
-          name = 'Hollow Shade';
-          break;
-        case 'SkeletonKing':
-          maxHp = 220;
-          dmg = 15;
-          spd = 0.9;
-          name = 'Baron von Bone (Necromancer Lord)';
-          break;
-        case 'VampireLord':
-          maxHp = 450;
-          dmg = 20;
-          spd = 1.4;
-          name = 'Vlad the Vampire Lord';
-          break;
-        case 'ChimeraBeast':
-          maxHp = 650;
-          dmg = 24;
-          spd = 1.6;
-          name = 'Ash-Wing Chimera';
-          break;
-        case 'SmelterGiant':
-          maxHp = 850;
-          dmg = 30;
-          spd = 0.8;
-          name = 'Ignis the Smelter Giant';
-          break;
-        case 'WerewolfKing':
-          maxHp = 280;
-          dmg = 18;
-          spd = 1.4;
-          name = 'Fenrir the Werewolf King';
-          break;
-        case 'VampireNoble':
-          maxHp = 440;
-          dmg = 22;
-          spd = 1.3;
-          name = 'Lord Sanguinius (Humanoid Vampire)';
-          break;
-        case 'CountDracula':
-          maxHp = 680;
-          dmg = 28;
-          spd = 1.25;
-          name = 'Count Dracula';
-          break;
-        case 'CthulhuSquid':
-          maxHp = 950;
-          dmg = 34;
-          spd = 1.0;
-          name = 'Cthulhu Abyssal Squid';
-          break;
-        case 'GraveDragun':
-          maxHp = 1500;
-          dmg = 42;
-          spd = 0.6;
-          name = 'Grave-Born Skeleton Dragun';
-          break;
-      }
-
-      const isBoss = s.type === 'SkeletonKing' || s.type === 'VampireLord' || s.type === 'ChimeraBeast' || s.type === 'SmelterGiant' || s.type === 'GraveDragun' || s.type === 'WerewolfKing' || s.type === 'VampireNoble' || s.type === 'CountDracula' || s.type === 'CthulhuSquid';
-      const size = s.type === 'GraveDragun' ? 56 : s.type === 'CthulhuSquid' ? 48 : s.type === 'CountDracula' ? 38 : s.type === 'VampireNoble' ? 32 : s.type === 'WerewolfKing' ? 36 : s.type === 'SmelterGiant' ? 44 : s.type === 'ChimeraBeast' ? 36 : s.type === 'VampireLord' ? 30 : s.type === 'SkeletonKing' ? 28 : s.type === 'BloodFiend' ? 22 : s.type === 'Zombie' ? 17 : 16;
-      const xpReward = s.type === 'GraveDragun' ? 600 : s.type === 'CthulhuSquid' ? 500 : s.type === 'CountDracula' ? 400 : s.type === 'VampireNoble' ? 300 : s.type === 'WerewolfKing' ? 200 : s.type === 'SmelterGiant' ? 350 : s.type === 'ChimeraBeast' ? 250 : s.type === 'VampireLord' ? 180 : s.type === 'SkeletonKing' ? 120 : s.type === 'BloodFiend' ? 32 + level.floorIndex * 4 : 15 + level.floorIndex * 3;
-      const attackCooldown = s.type === 'GraveDragun' ? 100 : s.type === 'CthulhuSquid' ? 90 : s.type === 'CountDracula' ? 85 : s.type === 'VampireNoble' ? 80 : s.type === 'WerewolfKing' ? 75 : s.type === 'SmelterGiant' ? 110 : s.type === 'ChimeraBeast' ? 80 : s.type === 'VampireLord' ? 90 : s.type === 'SkeletonKing' ? 95 : 70;
-      const color = s.type === 'GraveDragun' ? '#dc2626' : s.type === 'CthulhuSquid' ? '#0d9488' : s.type === 'CountDracula' ? '#b91c1c' : s.type === 'VampireNoble' ? '#ec4899' : s.type === 'WerewolfKing' ? '#1e293b' : s.type === 'SmelterGiant' ? '#ea580c' : s.type === 'ChimeraBeast' ? '#16a34a' : s.type === 'VampireLord' ? '#991b1b' : s.type === 'SkeletonKing' ? '#cbd5e1' : s.type === 'BloodFiend' ? '#7f1d1d' : s.type === 'DragonCultist' ? '#f97316' : s.type === 'Werewolf' ? '#4b5563' : s.type === 'Zombie' ? '#15803d' : s.type === 'Ghost' ? '#93c5fd' : s.type === 'Hollow' ? '#a21caf' : '#a1a1aa';
-
-      return {
-        id: `enemy_${Date.now()}_${idx}`,
-        type: s.type,
-        name,
-        x: s.x * 32 + 16,
-        y: s.y * 32 + 16,
-        size,
-        health: maxHp,
-        maxHealth: maxHp,
-        damage: dmg,
-        speed: spd,
-        xpReward,
-        isBoss,
-        state: 'idle' as const,
-        stateTimer: 0,
-        lastAttackTime: 0,
-        attackCooldown,
-        currentPhase: 1,
-        color,
-      };
+      return EnemyFactory.createEnemy(
+        s.type,
+        s.x,
+        s.y,
+        level.floorIndex,
+        level.kingdomIndex || 1, // Fallback if undefined
+        level.isBloodMoon || false
+      );
     });
 
     enemiesRef.current = spawnedEnemies;
@@ -259,6 +552,17 @@ export default function DungeonCanvas({
     const hasBoss = spawnedEnemies.some(e => e.isBoss);
     if (hasBoss) {
       playSound('boss_roar');
+    }
+
+    // Trigger Cinematic Floor Banner
+    setShowFloorBanner(true);
+    setTimeout(() => setShowFloorBanner(false), 3500);
+
+    // Trigger Boss Intro Sequence on Floor 5
+    if (level.floorIndex === 5) {
+      setBossIntroActive(true);
+      setBossIntroTextLines(GameManager.getBossIntroDialogue(level.kingdomIndex || 1));
+      setBossIntroLineIndex(0);
     }
 
     // Explored spawn room
@@ -599,9 +903,12 @@ export default function DungeonCanvas({
       });
     };
 
+    playSound('spell');
+    spawnSplashParticles(player.x, player.y, '#f97316', 10);
+    spawnSplashParticles(player.x, player.y, '#facc15', 6);
+    screenShakeRef.current = Math.max(screenShakeRef.current, 4);
     fireProjectile();
     if (checkDoubleCast) {
-      // Cast another 0.15s later or split angle
       fireProjectile(0.2);
       spawnDamageNumber(player.x, player.y - 12, 'Double Cast!', '#e9d5ff');
     }
@@ -610,8 +917,6 @@ export default function DungeonCanvas({
       ...prev,
       mana: Math.max(0, prev.mana - 15),
     }));
-
-    playSound('spell');
   };
 
   const handleMeleeAttack = () => {
@@ -732,15 +1037,19 @@ export default function DungeonCanvas({
     const gameLoop = () => {
       gameFrame.current++;
 
-      if (!activeDialogue) {
-        updatePlayerAndPhysics();
-        updateProjectiles();
-        updateCompanionsAndAI();
-        updateEnemiesAndAI();
-        updateParticlesAndDmgNumbers();
+      if (!activeDialogue && !bossIntroActive) {
+        if (lootPauseRef.current > 0) {
+          lootPauseRef.current--;
+        } else {
+          updatePlayerAndPhysics();
+          updateProjectiles();
+          updateCompanionsAndAI();
+          updateEnemiesAndAI();
+          updateParticlesAndDmgNumbers();
 
-        // Check level transitions and interaction triggers
-        checkCollisionsAndTriggers();
+          // Check level transitions and interaction triggers
+          checkCollisionsAndTriggers();
+        }
       }
 
       // Draw everything
@@ -751,7 +1060,7 @@ export default function DungeonCanvas({
 
     animFrameId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animFrameId);
-  }, [player, level, dimensions, gameActive, isSheetOpen, activeDialogue]);
+  }, [player, level, dimensions, gameActive, isSheetOpen, activeDialogue, bossIntroActive]);
 
   const updatePlayerAndPhysics = () => {
     // 1. Move Player
@@ -1120,6 +1429,7 @@ export default function DungeonCanvas({
         
         // Distribute Gold & XP
         const goldVal = Math.round((Math.random() * 5 + 4) * (e.isBoss ? 15 : 1));
+        if (onEnemyKilled) onEnemyKilled(e.type);
         
         let xpGained = e.xpReward;
         let nextXp = player.xp + xpGained;
@@ -1180,680 +1490,13 @@ export default function DungeonCanvas({
         return false;
       }
 
-      // Enemy AI behaviors
-      e.stateTimer--;
+      // Setup Callbacks for AISystem
+      const addProjectile = (p: Projectile) => projectilesRef.current.push(p);
+      const spawnEnemy = (en: Enemy) => enemiesRef.current.push(en);
+      const triggerScreenShake = (intensity: number) => { screenShakeRef.current = intensity; };
 
-      const dist = Math.sqrt((player.x - e.x) ** 2 + (player.y - e.y) ** 2);
-      const chaseRadius = e.isBoss ? 400 : 180;
-
-      // Dynamic AI states
-      if (e.isBoss) {
-        // --- BOSS AI ALGORITHMS ---
-        if (e.type === 'SkeletonKing') {
-          // Skeleton King (Baron von Bone) AI
-          if (e.stateTimer <= 0) {
-            const r = Math.random();
-            if (r < 0.35) {
-              // Summon a skeletal guard minion
-              e.state = 'boss_rage';
-              e.stateTimer = 50;
-              spawnDamageNumber(e.x, e.y - 12, "Rise, skeletal legions!", "#cbd5e1");
-              if (enemiesRef.current.length < 12) {
-                enemiesRef.current.push({
-                  id: `skeleton_spawn_${Date.now()}_${Math.random()}`,
-                  type: 'Skeleton',
-                  name: 'Skeletal Minion',
-                  x: e.x + (Math.random() - 0.5) * 64,
-                  y: e.y + (Math.random() - 0.5) * 64,
-                  size: 16,
-                  health: 35,
-                  maxHealth: 35,
-                  damage: 8,
-                  speed: 0.9,
-                  xpReward: 10,
-                  isBoss: false,
-                  state: 'chase' as const,
-                  stateTimer: 100,
-                  lastAttackTime: 0,
-                  attackCooldown: 70,
-                  currentPhase: 1,
-                  color: '#cbd5e1',
-                });
-              }
-              playSound('stairs');
-            } else if (r < 0.75) {
-              // Throws multiple rotating bone projectiles
-              e.state = 'attack';
-              e.stateTimer = 40;
-              for (let i = 0; i < 6; i++) {
-                const angle = (i * Math.PI) / 3;
-                projectilesRef.current.push({
-                  id: `bone_proj_${Date.now()}_${i}`,
-                  x: e.x,
-                  y: e.y,
-                  vx: Math.cos(angle) * 2.2,
-                  vy: Math.sin(angle) * 2.2,
-                  size: 7,
-                  damage: 14,
-                  isPlayer: false,
-                  color: '#e2e8f0',
-                  duration: 120,
-                  type: 'bone',
-                });
-              }
-              playSound('spell');
-            } else {
-              e.state = 'chase';
-              e.stateTimer = 45;
-            }
-          }
-
-          if (e.state === 'chase' && dist > 15) {
-            const angle = Math.atan2(player.y - e.y, player.x - e.x);
-            e.x += Math.cos(angle) * e.speed;
-            e.y += Math.sin(angle) * e.speed;
-            if (dist < 32 && gameFrame.current % 35 === 0) {
-              damagePlayer(e.damage);
-            }
-          }
-        } else if (e.type === 'VampireLord') {
-          // Vampire Lord Boss AI
-          if (e.stateTimer <= 0) {
-            // Decide boss move
-            const r = Math.random();
-            if (r < 0.35) {
-              // Teleport near player
-              e.state = 'boss_teleport';
-              e.stateTimer = 45;
-              playSound('teleport');
-              spawnSplashParticles(e.x, e.y, '#7f1d1d', 12);
-              
-              const angle = Math.random() * Math.PI * 2;
-              const distToPl = Math.random() * 80 + 40;
-              e.x = player.x + Math.cos(angle) * distToPl;
-              e.y = player.y + Math.sin(angle) * distToPl;
-              spawnSplashParticles(e.x, e.y, '#ef4444', 12);
-            } else if (r < 0.70) {
-              // Cast blood circular bat ring
-              e.state = 'attack';
-              e.stateTimer = 50;
-
-              for (let i = 0; i < 8; i++) {
-                const angle = (i * Math.PI) / 4;
-                projectilesRef.current.push({
-                  id: `lord_proj_${Date.now()}_${i}`,
-                  x: e.x,
-                  y: e.y,
-                  vx: Math.cos(angle) * 2.2,
-                  vy: Math.sin(angle) * 2.2,
-                  size: 6,
-                  damage: 15,
-                  isPlayer: false,
-                  color: '#ef4444', // Crimson Blood Orbs
-                  duration: 150,
-                  type: 'blood_orb',
-                });
-              }
-              playSound('spell');
-            } else {
-              // Regular rapid dash and sword swipe
-              e.state = 'chase';
-              e.stateTimer = 60;
-            }
-          }
-
-          if (e.state === 'chase' && dist > 20) {
-            // Chase rapidly
-            const angle = Math.atan2(player.y - e.y, player.x - e.x);
-            e.x += Math.cos(angle) * e.speed * 1.5;
-            e.y += Math.sin(angle) * e.speed * 1.5;
-
-            // Attack swipe close by
-            if (dist < 32 && gameFrame.current % 30 === 0) {
-              damagePlayer(e.damage);
-            }
-          }
-        } else if (e.type === 'ChimeraBeast') {
-          // Chimera Beast AI
-          if (e.stateTimer <= 0) {
-            const r = Math.random();
-            if (r < 0.45) {
-              // Charging dash
-              e.state = 'boss_fly';
-              e.stateTimer = 40;
-              spawnDamageNumber(e.x, e.y - 12, "WILDFIRE CHARGE!", "#ef4444");
-              playSound('boss_roar');
-            } else if (r < 0.80) {
-              // Flame Breath Sweep
-              e.state = 'attack';
-              e.stateTimer = 55;
-              const angleToPlayer = Math.atan2(player.y - e.y, player.x - e.x);
-              for (let offset = -0.3; offset <= 0.3; offset += 0.3) {
-                projectilesRef.current.push({
-                  id: `chimera_fire_${Date.now()}_${offset}`,
-                  x: e.x,
-                  y: e.y,
-                  vx: Math.cos(angleToPlayer + offset) * 3.6,
-                  vy: Math.sin(angleToPlayer + offset) * 3.6,
-                  size: 8,
-                  damage: 18,
-                  isPlayer: false,
-                  color: '#fb923c',
-                  duration: 120,
-                  type: 'fireball',
-                });
-              }
-              playSound('spell');
-            } else {
-              e.state = 'chase';
-              e.stateTimer = 45;
-            }
-          }
-
-          if (e.state === 'boss_fly') {
-            // Charging extremely fast towards player
-            const angle = Math.atan2(player.y - e.y, player.x - e.x);
-            e.x += Math.cos(angle) * e.speed * 2.4;
-            e.y += Math.sin(angle) * e.speed * 2.4;
-            if (dist < 30 && gameFrame.current % 15 === 0) {
-              damagePlayer(e.damage + 4);
-              spawnDamageNumber(player.x, player.y - 10, "Knockback Slam!", "#ef4444");
-            }
-          } else if (e.state === 'chase' && dist > 15) {
-            const angle = Math.atan2(player.y - e.y, player.x - e.x);
-            e.x += Math.cos(angle) * e.speed;
-            e.y += Math.sin(angle) * e.speed;
-            if (dist < 32 && gameFrame.current % 30 === 0) {
-              damagePlayer(e.damage);
-            }
-          }
-        } else if (e.type === 'SmelterGiant') {
-          // Smelter Giant AI
-          if (e.stateTimer <= 0) {
-            const r = Math.random();
-            if (r < 0.45) {
-              // Ground rupture fissure eruptions
-              e.state = 'boss_rage';
-              e.stateTimer = 65;
-              spawnDamageNumber(e.x, e.y - 12, "MAGMA FISSURE!", "#ea580c");
-              playSound('boss_roar');
-            } else if (r < 0.80) {
-              // Summon fire minions
-              e.state = 'attack';
-              e.stateTimer = 50;
-              spawnDamageNumber(e.x, e.y - 12, "Stoke the Forge!", "#fbbf24");
-              if (enemiesRef.current.length < 12) {
-                enemiesRef.current.push({
-                  id: `cultist_spawn_${Date.now()}_${Math.random()}`,
-                  type: 'DragonCultist',
-                  name: 'Forge Acolyte',
-                  x: e.x + (Math.random() - 0.5) * 64,
-                  y: e.y + (Math.random() - 0.5) * 64,
-                  size: 16,
-                  health: 50,
-                  maxHealth: 50,
-                  damage: 12,
-                  speed: 1.1,
-                  xpReward: 15,
-                  isBoss: false,
-                  state: 'chase' as const,
-                  stateTimer: 100,
-                  lastAttackTime: 0,
-                  attackCooldown: 80,
-                  currentPhase: 1,
-                  color: '#ea580c',
-                });
-              }
-              playSound('spell');
-            } else {
-              e.state = 'chase';
-              e.stateTimer = 50;
-            }
-          }
-
-          if (e.state === 'boss_rage' && gameFrame.current % 20 === 0) {
-            // Lava cracks erupting directly beneath player!
-            const fX = player.x;
-            const fY = player.y;
-            particlesRef.current.push({
-              x: fX,
-              y: fY,
-              vx: 0, vy: 0,
-              color: '#f97316',
-              size: 24,
-              duration: 0,
-              maxDuration: 35,
-              alpha: 0.6,
-            });
-            setTimeout(() => {
-              if (gameActive && !isSheetOpen) {
-                spawnSplashParticles(fX, fY, '#dc2626', 16);
-                if (Math.sqrt((player.x - fX) ** 2 + (player.y - fY) ** 2) < 28) {
-                  damagePlayer(25);
-                }
-              }
-            }, 550);
-          } else if (e.state === 'chase' && dist > 15) {
-            const angle = Math.atan2(player.y - e.y, player.x - e.x);
-            e.x += Math.cos(angle) * e.speed;
-            e.y += Math.sin(angle) * e.speed;
-            if (dist < 34 && gameFrame.current % 35 === 0) {
-              damagePlayer(e.damage);
-              spawnDamageNumber(player.x, player.y - 10, "Hammer Crush!", "#f97316");
-            }
-          }
-        } else if (e.type === 'GraveDragun') {
-          // Grave Dragon Boss AI
-          if (e.stateTimer <= 0) {
-            const r = Math.random();
-            if (r < 0.40) {
-              // Breath Sweep Fireballs
-              e.state = 'attack';
-              e.stateTimer = 90;
-              playSound('boss_roar');
-            } else if (r < 0.80) {
-              // Meteor Rain strike indicators
-              e.state = 'boss_rage';
-              e.stateTimer = 60;
-              spawnDamageNumber(e.x, e.y - 12, 'METEOR SHOWER!', '#ea580c');
-            } else {
-              // Idle/Fly patterns
-              e.state = 'boss_fly';
-              e.stateTimer = 50;
-            }
-          }
-
-          // Sweep fire breath behavior
-          if (e.state === 'attack' && gameFrame.current % 12 === 0) {
-            const angleToPlayer = Math.atan2(player.y - e.y, player.x - e.x);
-            // Sweep range of 3 fireballs
-            for (let offset = -0.3; offset <= 0.3; offset += 0.3) {
-              projectilesRef.current.push({
-                id: `dragun_fire_${Date.now()}_${offset}`,
-                x: e.x,
-                y: e.y + 20,
-                vx: Math.cos(angleToPlayer + offset) * 3.5,
-                vy: Math.sin(angleToPlayer + offset) * 3.5,
-                size: 9,
-                damage: 22,
-                isPlayer: false,
-                color: '#f97316',
-                duration: 150,
-                type: 'fireball',
-              });
-            }
-            playSound('spell');
-          }
-
-          // Meteor spawn indicators
-          if (e.state === 'boss_rage' && gameFrame.current % 15 === 0) {
-            // Pick a spot near player
-            const metX = player.x + (Math.random() - 0.5) * 120;
-            const metY = player.y + (Math.random() - 0.5) * 120;
-
-            // Indicator particle
-            particlesRef.current.push({
-              x: metX,
-              y: metY,
-              vx: 0, vy: 0,
-              color: '#ea580c',
-              size: 20,
-              duration: 0,
-              maxDuration: 40,
-              alpha: 0.4,
-            });
-
-            // Delayed explosion meteor drop
-            setTimeout(() => {
-              if (gameActive && !isSheetOpen) {
-                // Lava splash explosion on target
-                spawnSplashParticles(metX, metY, '#f97316', 12);
-                if (Math.sqrt((player.x - metX) ** 2 + (player.y - metY) ** 2) < 24) {
-                  damagePlayer(25);
-                }
-              }
-            }, 650);
-          }
-        } else if (e.type === 'WerewolfKing') {
-          // Werewolf King Boss AI
-          if (e.stateTimer <= 0) {
-            const r = Math.random();
-            if (r < 0.35) {
-              // Summon shadow werewolf minions
-              e.state = 'boss_rage';
-              e.stateTimer = 45;
-              spawnDamageNumber(e.x, e.y - 12, "Lupine pack, hunt!", "#4b5563");
-              if (enemiesRef.current.length < 12) {
-                enemiesRef.current.push({
-                  id: `werewolf_spawn_${Date.now()}`,
-                  type: 'Werewolf',
-                  name: 'Dire Werewolf',
-                  x: e.x + (Math.random() - 0.5) * 64,
-                  y: e.y + (Math.random() - 0.5) * 64,
-                  size: 16,
-                  health: 75,
-                  maxHealth: 75,
-                  damage: 15,
-                  speed: 1.4,
-                  xpReward: 25,
-                  isBoss: false,
-                  state: 'chase' as const,
-                  stateTimer: 100,
-                  lastAttackTime: 0,
-                  attackCooldown: 60,
-                  currentPhase: 1,
-                  color: '#4b5563',
-                });
-              }
-              playSound('boss_roar');
-            } else if (r < 0.75) {
-              // Leap Slash attack
-              e.state = 'attack';
-              e.stateTimer = 30;
-              spawnDamageNumber(e.x, e.y - 12, "FEROCIOUS LUNGE!", "#ef4444");
-              playSound('swing');
-            } else {
-              e.state = 'chase';
-              e.stateTimer = 50;
-            }
-          }
-
-          if (e.state === 'attack') {
-            // Move fast and hit
-            const angle = Math.atan2(player.y - e.y, player.x - e.x);
-            e.x += Math.cos(angle) * e.speed * 2.2;
-            e.y += Math.sin(angle) * e.speed * 2.2;
-            if (dist < 32 && gameFrame.current % 10 === 0) {
-              damagePlayer(e.damage);
-              spawnSplashParticles(player.x, player.y, '#fca5a5', 10);
-            }
-          } else if (e.state === 'chase' && dist > 15) {
-            const angle = Math.atan2(player.y - e.y, player.x - e.x);
-            e.x += Math.cos(angle) * e.speed;
-            e.y += Math.sin(angle) * e.speed;
-            if (dist < 32 && gameFrame.current % 30 === 0) {
-              damagePlayer(e.damage - 4);
-            }
-          }
-        } else if (e.type === 'VampireNoble') {
-          // Vampire Noble Boss AI
-          if (e.stateTimer <= 0) {
-            const r = Math.random();
-            if (r < 0.40) {
-              // Elegant Teleport
-              e.state = 'boss_teleport';
-              e.stateTimer = 25;
-              playSound('teleport');
-              spawnSplashParticles(e.x, e.y, '#db2777', 15);
-              const angle = Math.random() * Math.PI * 2;
-              e.x = player.x + Math.cos(angle) * 75;
-              e.y = player.y + Math.sin(angle) * 75;
-              spawnSplashParticles(e.x, e.y, '#db2777', 15);
-            } else if (r < 0.80) {
-              // Scepter magical bolts
-              e.state = 'attack';
-              e.stateTimer = 40;
-              playSound('spell');
-              const angle = Math.atan2(player.y - e.y, player.x - e.x);
-              for (let offset = -0.2; offset <= 0.2; offset += 0.2) {
-                projectilesRef.current.push({
-                  id: `noble_proj_${Date.now()}_${offset}`,
-                  x: e.x,
-                  y: e.y,
-                  vx: Math.cos(angle + offset) * 3.2,
-                  vy: Math.sin(angle + offset) * 3.2,
-                  size: 6,
-                  damage: 18,
-                  isPlayer: false,
-                  color: '#ec4899', // pink magic bolts
-                  duration: 120,
-                  type: 'blood_orb',
-                });
-              }
-            } else {
-              e.state = 'chase';
-              e.stateTimer = 40;
-            }
-          }
-
-          if (e.state === 'chase' && dist > 15) {
-            const angle = Math.atan2(player.y - e.y, player.x - e.x);
-            e.x += Math.cos(angle) * e.speed;
-            e.y += Math.sin(angle) * e.speed;
-            if (dist < 28 && gameFrame.current % 30 === 0) {
-              damagePlayer(e.damage);
-            }
-          }
-        } else if (e.type === 'CountDracula') {
-          // Count Dracula Boss AI
-          if (e.stateTimer <= 0) {
-            const r = Math.random();
-            if (r < 0.35) {
-              // Blood Siphon lifesteal
-              e.state = 'boss_rage';
-              e.stateTimer = 40;
-              spawnDamageNumber(e.x, e.y - 12, "Sanguine Siphon!", "#ef4444");
-              playSound('spell');
-              if (dist < 150) {
-                damagePlayer(20);
-                const leechAmt = 40;
-                e.health = Math.min(e.maxHealth, e.health + leechAmt);
-                spawnDamageNumber(e.x, e.y, `+${leechAmt} HP Leeched`, '#22c55e');
-                spawnSplashParticles(player.x, player.y, '#ef4444', 15);
-              }
-            } else if (r < 0.75) {
-              // Dark bat ring
-              e.state = 'attack';
-              e.stateTimer = 50;
-              playSound('boss_roar');
-              for (let i = 0; i < 10; i++) {
-                const angle = (i * Math.PI) / 5;
-                projectilesRef.current.push({
-                  id: `drac_bat_${Date.now()}_${i}`,
-                  x: e.x,
-                  y: e.y,
-                  vx: Math.cos(angle) * 2.8,
-                  vy: Math.sin(angle) * 2.8,
-                  size: 6,
-                  damage: 20,
-                  isPlayer: false,
-                  color: '#b91c1c',
-                  duration: 120,
-                  type: 'blood_orb',
-                });
-              }
-            } else {
-              e.state = 'chase';
-              e.stateTimer = 45;
-            }
-          }
-
-          if (e.state === 'chase' && dist > 15) {
-            const angle = Math.atan2(player.y - e.y, player.x - e.x);
-            e.x += Math.cos(angle) * e.speed;
-            e.y += Math.sin(angle) * e.speed;
-            if (dist < 32 && gameFrame.current % 28 === 0) {
-              damagePlayer(e.damage);
-            }
-          }
-        } else if (e.type === 'CthulhuSquid') {
-          // Cthulhu Abyssal Squid AI
-          if (e.stateTimer <= 0) {
-            const r = Math.random();
-            if (r < 0.35) {
-              // Abyssal Wave Screen Shake and damage
-              e.state = 'boss_rage';
-              e.stateTimer = 50;
-              spawnDamageNumber(e.x, e.y - 12, "ABYSSAL TYPHOON!", "#0d9488");
-              playSound('boss_roar');
-              screenShakeRef.current = 15;
-              if (dist < 180) {
-                damagePlayer(25);
-                spawnSplashParticles(player.x, player.y, '#0d9488', 15);
-              }
-            } else if (r < 0.75) {
-              // Teal ink spray
-              e.state = 'attack';
-              e.stateTimer = 55;
-              playSound('spell');
-              const angle = Math.atan2(player.y - e.y, player.x - e.x);
-              for (let offset = -0.4; offset <= 0.4; offset += 0.2) {
-                projectilesRef.current.push({
-                  id: `squid_ink_${Date.now()}_${offset}`,
-                  x: e.x,
-                  y: e.y,
-                  vx: Math.cos(angle + offset) * 2.4,
-                  vy: Math.sin(angle + offset) * 2.4,
-                  size: 8,
-                  damage: 22,
-                  isPlayer: false,
-                  color: '#2dd4bf',
-                  duration: 150,
-                  type: 'blood_orb',
-                });
-              }
-            } else {
-              e.state = 'chase';
-              e.stateTimer = 50;
-            }
-          }
-
-          if (e.state === 'chase' && dist > 15) {
-            const angle = Math.atan2(player.y - e.y, player.x - e.x);
-            e.x += Math.cos(angle) * e.speed;
-            e.y += Math.sin(angle) * e.speed;
-            if (dist < 34 && gameFrame.current % 32 === 0) {
-              damagePlayer(e.damage);
-            }
-          }
-        }
-      } else {
-        // --- REGULAR ENEMY AI ---
-        // Wake up gargoyle on approach
-        if (e.type === 'Gargoyle') {
-          if (dist < 100) {
-            e.state = 'chase';
-            e.speed = 1.2; // Awakes!
-          } else {
-            e.state = 'idle';
-          }
-        } else {
-          // Regular chase/idle
-          if (dist < chaseRadius) {
-            e.state = 'chase';
-          } else {
-            e.state = 'idle';
-          }
-        }
-
-        if (e.state === 'chase' || (e.type === 'Werewolf' && e.state === 'attack')) {
-          // Guide path to player
-          const angle = Math.atan2(player.y - e.y, player.x - e.x);
-          
-          // Bats, Ghosts, and Hollows can fly through walls
-          const canFly = e.type === 'Bat' || e.type === 'Ghost' || e.type === 'Hollow';
-          let moveSpd = e.speed;
-          if (e.type === 'Werewolf' && e.state === 'attack') {
-            moveSpd = e.speed * 2.8; // Leap speed!
-          }
-          let exNext = e.x + Math.cos(angle) * moveSpd;
-          let eyNext = e.y + Math.sin(angle) * moveSpd;
-
-          if (canFly) {
-            e.x = exNext;
-            e.y = eyNext;
-          } else {
-            // Basic tile check before sliding
-            const tx = Math.floor(exNext / 32);
-            const ty = Math.floor(eyNext / 32);
-            if (!isWallOrSolid(tx, ty)) {
-              e.x = exNext;
-              e.y = eyNext;
-            }
-          }
-
-          // Werewolf leap attack trigger
-          if (e.type === 'Werewolf' && e.state !== 'attack' && dist > 40 && dist < 120 && gameFrame.current % 100 === 0) {
-            e.state = 'attack';
-            e.stateTimer = 20; // leap lasts 20 frames
-            playSound('swing');
-            spawnSplashParticles(e.x, e.y, '#4b5563', 6);
-          }
-
-          // Enemy attack actions
-          if (dist < 22 && gameFrame.current % 45 === 0) {
-            if (player.dashActiveTime <= 0) {
-              if (e.type === 'BloodFiend') {
-                damagePlayer(e.damage);
-                screenShakeRef.current = 15; // heavy crush screen shake
-                spawnSplashParticles(player.x, player.y, '#7f1d1d', 16);
-                spawnDamageNumber(player.x, player.y - 12, 'CRUSH!', '#ef4444');
-                playSound('hit');
-              } else {
-                damagePlayer(e.damage);
-                if (e.type === 'Werewolf') {
-                  spawnSplashParticles(player.x, player.y, '#fee2e2', 6);
-                }
-              }
-            }
-          }
-
-          // Range attacks for Skeleton archer, Shadow Mage, and Dragon Cultist
-          if (e.type === 'Skeleton' && dist > 70 && dist < 180 && gameFrame.current % 95 === 0) {
-            // Shoot bone arrow projectile
-            projectilesRef.current.push({
-              id: `bone_${Date.now()}`,
-              x: e.x,
-              y: e.y,
-              vx: Math.cos(angle) * 3.0,
-              vy: Math.sin(angle) * 3.0,
-              size: 5,
-              damage: 10,
-              isPlayer: false,
-              color: '#e4e4e7',
-              duration: 100,
-              type: 'bone',
-            });
-            playSound('swing');
-          }
-
-          if (e.type === 'Mage' && dist > 60 && dist < 170 && gameFrame.current % 110 === 0) {
-            // Shoot tracking shadow orb
-            projectilesRef.current.push({
-              id: `shadow_${Date.now()}`,
-              x: e.x,
-              y: e.y,
-              vx: Math.cos(angle) * 2.0,
-              vy: Math.sin(angle) * 2.0,
-              size: 7,
-              damage: 14,
-              isPlayer: false,
-              color: '#c084fc',
-              duration: 120,
-              type: 'shadow',
-            });
-            playSound('spell');
-          }
-
-          if (e.type === 'DragonCultist' && dist > 50 && dist < 160 && gameFrame.current % 85 === 0) {
-            // Shoot draconic fireball projectile
-            projectilesRef.current.push({
-              id: `cult_fire_${Date.now()}`,
-              x: e.x,
-              y: e.y,
-              vx: Math.cos(angle) * 3.2,
-              vy: Math.sin(angle) * 3.2,
-              size: 6,
-              damage: 12,
-              isPlayer: false,
-              color: '#ea580c',
-              duration: 100,
-              type: 'fireball',
-            });
-            playSound('spell');
-          }
-        }
-      }
+      // Update AI
+      AISystem.updateEnemyAI(e, player, level, addProjectile, spawnEnemy, triggerScreenShake, damagePlayer);
 
       return true;
     });
@@ -1900,6 +1543,7 @@ export default function DungeonCanvas({
 
       playSound('chest');
       spawnSplashParticles(player.x, player.y, '#f59e0b', 30); // Big golden burst
+      lootPauseRef.current = 180;
 
       // Generate random high-tier loot item!
       const itemTypes = ['Weapon', 'Armor', 'Ring', 'Relic'] as const;
@@ -1930,6 +1574,7 @@ export default function DungeonCanvas({
       setLevel({ ...level });
       playSound('levelup'); // Use healing sound cue
       spawnSplashParticles(player.x, player.y, '#22c55e', 18); // Green burst
+      lootPauseRef.current = 180;
       const healAmt = Math.round(player.maxHealth * 0.20);
       setPlayer(prev => ({
         ...prev,
@@ -1944,6 +1589,7 @@ export default function DungeonCanvas({
       setLevel({ ...level });
       playSound('spell'); // Magic potion sound cue
       spawnSplashParticles(player.x, player.y, '#3b82f6', 18); // Blue/purple burst
+      lootPauseRef.current = 180;
       const healAmt = Math.round(player.maxHealth * 0.35);
       const manaAmt = Math.round(player.maxMana * 0.50);
       setPlayer(prev => ({
@@ -2309,7 +1955,7 @@ export default function DungeonCanvas({
     const endY = Math.min(level.height, Math.ceil((cy + dimensions.height) / 32));
 
     // Theme color adjustments
-    const isLavaTheme = level.floorTheme === 'DragunMaw' || level.floorTheme === 'InnerSanctum';
+    const isLavaTheme = ['DragonNest', 'VolcanicWastes', 'EternalThrone'].includes(level.floorTheme);
 
     // 1. Draw Grid Tiles
     for (let y = startY; y < endY; y++) {
@@ -2571,6 +2217,54 @@ export default function DungeonCanvas({
         ctx.beginPath();
         ctx.arc(sx, sy, p.size * 0.5, 0, Math.PI * 2);
         ctx.stroke();
+      } else if (p.type === 'fireball') {
+        // Hero fireball with bright corona
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(sx, sy, p.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.85)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(sx, sy, p.size * 1.6, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(sx, sy, p.size - 2, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (p.type === 'shadow') {
+        // Purple astral orb
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(sx, sy, p.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(192, 132, 252, 0.85)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(sx, sy, p.size * 1.2, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(sx - p.size * 0.8, sy);
+        ctx.lineTo(sx + p.size * 0.8, sy);
+        ctx.stroke();
+      } else if (p.type === 'holy_spear') {
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(sx - p.vx * 2, sy - p.vy * 2);
+        ctx.lineTo(sx + p.vx * 2, sy + p.vy * 2);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(254, 242, 196, 0.85)';
+        ctx.beginPath();
+        ctx.arc(sx, sy, p.size * 0.9, 0, Math.PI * 2);
+        ctx.fill();
       } else {
         // Spell fireball glowing rings
         ctx.fillStyle = p.color;
@@ -2587,6 +2281,18 @@ export default function DungeonCanvas({
       }
     });
 
+    if (lootPauseRef.current > 0) {
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+      ctx.fillRect(dimensions.width / 2 - 160, dimensions.height / 2 - 26, 320, 52);
+      ctx.strokeStyle = '#f8fafc';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(dimensions.width / 2 - 160, dimensions.height / 2 - 26, 320, 52);
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '16px Georgia';
+      ctx.textAlign = 'center';
+      ctx.fillText('Collecting loot and recharging...', dimensions.width / 2, dimensions.height / 2 + 6);
+    }
+
     // 3. Draw Regular Enemies and Bosses
     enemiesRef.current.forEach(e => {
       const sx = e.x - cx;
@@ -2596,163 +2302,74 @@ export default function DungeonCanvas({
       if (sx < -50 || sx > dimensions.width + 50 || sy < -50 || sy > dimensions.height + 50) return;
 
       // Draw shadow circle base
-      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
       ctx.beginPath();
       ctx.arc(sx, sy + e.size - 2, e.size * 0.8, 0, Math.PI * 2);
       ctx.fill();
 
-      // Enemy styling
-      if (e.type === 'Bat') {
-        // Red glowing eyes + flapping wings
-        ctx.fillStyle = '#1e1b4b'; // dark blue bat body
+      drawEnemySigil(ctx, e, sx, sy, gameFrame.current);
+
+      if (e.type === 'DragonCultist') {
+        // Orange cultist with dragon mask and staff
+        ctx.fillStyle = '#991b1b';
         ctx.beginPath();
-        ctx.arc(sx, sy, e.size, 0, Math.PI * 2);
+        ctx.ellipse(sx, sy + 2, e.size * 0.75, e.size * 1.1, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Flapping Wing triangles
-        const flap = Math.sin(gameFrame.current * 0.4) > 0 ? 10 : 2;
-        ctx.fillStyle = '#0f172a';
+        // Hood and mask
+        ctx.fillStyle = '#18181b';
         ctx.beginPath();
-        ctx.moveTo(sx - e.size, sy);
-        ctx.lineTo(sx - e.size - 8, sy - flap);
-        ctx.lineTo(sx, sy);
+        ctx.moveTo(sx - 8, sy - 8);
+        ctx.quadraticCurveTo(sx, sy - 18, sx + 8, sy - 8);
+        ctx.lineTo(sx + 8, sy + 2);
+        ctx.lineTo(sx - 8, sy + 2);
+        ctx.closePath();
         ctx.fill();
 
-        ctx.beginPath();
-        ctx.moveTo(sx + e.size, sy);
-        ctx.lineTo(sx + e.size + 8, sy - flap);
-        ctx.lineTo(sx, sy);
-        ctx.fill();
-
-        // Red glowing eyes
-        ctx.fillStyle = '#f43f5e';
-        ctx.fillRect(sx - 3, sy - 2, 2, 2);
-        ctx.fillRect(sx + 1, sy - 2, 2, 2);
-
-      } else if (e.type === 'Skeleton') {
-        // White bones with metal helmet
-        ctx.fillStyle = '#f4f4f5';
-        ctx.beginPath();
-        ctx.arc(sx, sy, e.size, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Red shield/hood accents
-        ctx.fillStyle = '#71717a';
-        ctx.fillRect(sx - 5, sy - 8, 10, 4); // Iron crown/helm
-
-        // Red glowing eyes
-        ctx.fillStyle = '#dc2626';
-        ctx.fillRect(sx - 2, sy - 2, 1, 1.5);
-        ctx.fillRect(sx + 1, sy - 2, 1, 1.5);
-
-      } else if (e.type === 'Thrall') {
-        // Pale vampire thrall with red tattered sash
-        ctx.fillStyle = '#e4e4e7';
-        ctx.beginPath();
-        ctx.arc(sx, sy, e.size, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Cloak
-        ctx.fillStyle = '#450a0a';
-        ctx.fillRect(sx - 4, sy + 2, 8, 8);
-
-      } else if (e.type === 'Mage') {
-        // Purple hooded shadow necromancer
-        ctx.fillStyle = '#6b21a8';
-        ctx.beginPath();
-        ctx.arc(sx, sy, e.size, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Wizard pointy hat
-        ctx.fillStyle = '#4c1d95';
-        ctx.beginPath();
-        ctx.moveTo(sx - 6, sy - 4);
-        ctx.lineTo(sx, sy - 14);
-        ctx.lineTo(sx + 6, sy - 4);
-        ctx.fill();
-
-      } else if (e.type === 'BloodFiend') {
-        // Heavy dark crimson blood beast
-        ctx.fillStyle = '#7f1d1d';
-        ctx.beginPath();
-        ctx.arc(sx, sy, e.size, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Draw horns
-        ctx.fillStyle = '#1c1917';
-        ctx.beginPath();
-        ctx.moveTo(sx - 8, sy - 4);
-        ctx.lineTo(sx - 14, sy - 14);
-        ctx.lineTo(sx - 2, sy - 4);
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(sx + 8, sy - 4);
-        ctx.lineTo(sx + 14, sy - 14);
-        ctx.lineTo(sx + 2, sy - 4);
-        ctx.fill();
-
-        // Beastly red glowing eyes
-        ctx.fillStyle = '#f43f5e';
-        ctx.fillRect(sx - 5, sy - 2, 2, 2);
-        ctx.fillRect(sx + 3, sy - 2, 2, 2);
-
-      } else if (e.type === 'DragonCultist') {
-        // Orange and charcoal hooded dragon worshipper
-        ctx.fillStyle = '#c2410c'; // magma orange
-        ctx.beginPath();
-        ctx.arc(sx, sy, e.size, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Draw dark hood cowl
-        ctx.fillStyle = '#1c1917';
-        ctx.beginPath();
-        ctx.arc(sx, sy, e.size - 4, 0, Math.PI, true);
-        ctx.fill();
-
-        // Tiny glowing magma staff in hand
-        ctx.strokeStyle = '#78350f';
+        // Dragon staff
+        ctx.strokeStyle = '#f97316';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(sx + 8, sy + 8);
-        ctx.lineTo(sx + 14, sy - 6);
+        ctx.moveTo(sx + 10, sy + 10);
+        ctx.lineTo(sx + 16, sy - 6);
         ctx.stroke();
-
-        // Glowing fire orb on top of staff
-        ctx.fillStyle = '#ea580c';
+        ctx.fillStyle = '#fb923c';
         ctx.beginPath();
-        ctx.arc(sx + 14, sy - 6, 4, 0, Math.PI * 2);
+        ctx.arc(sx + 16, sy - 6, 3, 0, Math.PI * 2);
         ctx.fill();
 
       } else if (e.type === 'Werewolf') {
-        // Charcoal wolf body
-        ctx.fillStyle = '#374151';
+        // Upright lupine warrior
+        ctx.fillStyle = '#334155';
         ctx.beginPath();
-        ctx.arc(sx, sy, e.size, 0, Math.PI * 2);
+        ctx.ellipse(sx, sy + 4, e.size * 0.85, e.size * 1.2, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Wolf ears
+        // Snarl head
         ctx.fillStyle = '#1f2937';
         ctx.beginPath();
-        ctx.moveTo(sx - 6, sy - 6);
-        ctx.lineTo(sx - 10, sy - 16);
-        ctx.lineTo(sx - 2, sy - 8);
+        ctx.arc(sx, sy - 6, e.size * 0.5, 0, Math.PI * 2);
         ctx.fill();
 
+        // Ears
         ctx.beginPath();
-        ctx.moveTo(sx + 6, sy - 6);
-        ctx.lineTo(sx + 10, sy - 16);
-        ctx.lineTo(sx + 2, sy - 8);
+        ctx.moveTo(sx - 8, sy - 12);
+        ctx.lineTo(sx - 14, sy - 22);
+        ctx.lineTo(sx - 2, sy - 14);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(sx + 8, sy - 12);
+        ctx.lineTo(sx + 14, sy - 22);
+        ctx.lineTo(sx + 2, sy - 14);
         ctx.fill();
 
-        // Wolf Snout / nose
-        ctx.fillStyle = '#111827';
-        ctx.fillRect(sx - 3, sy + 1, 6, 5);
-
-        // Glowing yellow feral eyes
+        // Eyes and fangs
         ctx.fillStyle = '#fbbf24';
-        ctx.fillRect(sx - 4, sy - 2, 1.5, 1.5);
-        ctx.fillRect(sx + 2.5, sy - 2, 1.5, 1.5);
+        ctx.fillRect(sx - 5, sy - 7, 2.5, 2.5);
+        ctx.fillRect(sx + 3, sy - 7, 2.5, 2.5);
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(sx - 2, sy - 1, 1.5, 3);
+        ctx.fillRect(sx + 1, sy - 1, 1.5, 3);
 
       } else if (e.type === 'SkeletonKing') {
         // Baron von Bone - Skeletal Lord model
@@ -2896,20 +2513,28 @@ export default function DungeonCanvas({
         ctx.fillRect(sx + 22, sy - 24, 12, 12);
 
       } else if (e.type === 'Zombie') {
-        // Rotting green zombie
+        // Rotting green zombie with hunched shoulders
         ctx.fillStyle = '#166534'; // rotting green flesh
         ctx.beginPath();
-        ctx.arc(sx, sy, e.size, 0, Math.PI * 2);
+        ctx.ellipse(sx, sy + 2, e.size * 0.9, e.size * 1.1, 0, 0, Math.PI * 2);
         ctx.fill();
+
+        // Head and torn jaw
+        ctx.fillStyle = '#d9f99d';
+        ctx.beginPath();
+        ctx.arc(sx, sy - 6, e.size * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#4d7c0f';
+        ctx.fillRect(sx - 4, sy - 3, 8, 2);
 
         // Tattered clothes collar
         ctx.fillStyle = '#78350f'; // decayed brown rags
-        ctx.fillRect(sx - 6, sy + 3, 12, 4);
+        ctx.fillRect(sx - 6, sy + 4, 12, 4);
 
-        // Glowing dull-yellow eyes
+        // Dull yellow eyes
         ctx.fillStyle = '#fde047';
-        ctx.fillRect(sx - 3, sy - 2, 1.5, 1.5);
-        ctx.fillRect(sx + 1.5, sy - 2, 1.5, 1.5);
+        ctx.fillRect(sx - 3, sy - 8, 2, 2);
+        ctx.fillRect(sx + 1, sy - 8, 2, 2);
 
       } else if (e.type === 'Ghost') {
         // Translucent floating phantom
@@ -3187,12 +2812,277 @@ export default function DungeonCanvas({
         ctx.fillStyle = '#f59e0b';
         ctx.fillRect(sx - 8, sy - 4, 3, 4);
         ctx.fillRect(sx + 5, sy - 4, 3, 4);
-      } else {
-        // General default circle fallback
-        ctx.fillStyle = e.color;
+      } else if (e.type === 'Ghoul' || e.type === 'PlagueGhoul') {
+        // Hunched necrotic ghoul — twisted limbs, glowing green eyes
+        ctx.fillStyle = e.type === 'PlagueGhoul' ? '#365314' : '#3f6212';
         ctx.beginPath();
-        ctx.arc(sx, sy, e.size, 0, Math.PI * 2);
+        ctx.ellipse(sx, sy + 6, e.size * 0.7, e.size * 1.2, 0, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = '#1f2937';
+        ctx.fillRect(sx - 4, sy - 2, 8, 10);
+
+        // Ragged arms and claws
+        ctx.strokeStyle = '#84cc16';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(sx - 8, sy + 10); ctx.lineTo(sx - 16, sy + 18); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sx + 8, sy + 10); ctx.lineTo(sx + 16, sy + 18); ctx.stroke();
+
+        // Glowing eyes
+        ctx.fillStyle = e.type === 'PlagueGhoul' ? '#a3e635' : '#65a30d';
+        ctx.beginPath(); ctx.arc(sx - 4, sy - 4, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx + 4, sy - 4, 2.5, 0, Math.PI * 2); ctx.fill();
+
+      } else if (e.type === 'Werewolf' || e.type === 'WerewolfKing') {
+        // Werewolf — large, upright wolf body
+        const wScale = e.type === 'WerewolfKing' ? 1.4 : 1.0;
+        ctx.fillStyle = e.type === 'WerewolfKing' ? '#111827' : '#374151';
+        ctx.beginPath();
+        ctx.ellipse(sx, sy + 2, e.size * 0.75 * wScale, e.size * wScale, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Wolf ears
+        ctx.fillStyle = e.type === 'WerewolfKing' ? '#1f2937' : '#4b5563';
+        ctx.beginPath(); ctx.moveTo(sx - 8, sy - e.size); ctx.lineTo(sx - 14, sy - e.size - 10); ctx.lineTo(sx - 2, sy - e.size + 2); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(sx + 8, sy - e.size); ctx.lineTo(sx + 14, sy - e.size - 10); ctx.lineTo(sx + 2, sy - e.size + 2); ctx.fill();
+        // Red snarl eyes
+        ctx.fillStyle = e.type === 'WerewolfKing' ? '#fbbf24' : '#ef4444';
+        ctx.beginPath(); ctx.arc(sx - 5, sy - 3, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx + 5, sy - 3, 3, 0, Math.PI * 2); ctx.fill();
+        if (e.type === 'WerewolfKing') {
+          // Crown of bone
+          ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(sx - 12, sy - e.size); ctx.lineTo(sx - 8, sy - e.size - 8); ctx.lineTo(sx, sy - e.size - 4); ctx.lineTo(sx + 8, sy - e.size - 8); ctx.lineTo(sx + 12, sy - e.size); ctx.stroke();
+        }
+
+      } else if (e.type === 'Ghost') {
+        // Translucent ghost — fading wisp form
+        ctx.save();
+        ctx.globalAlpha = 0.65 + Math.sin(Date.now() * 0.004) * 0.15;
+        ctx.fillStyle = '#bfdbfe';
+        ctx.beginPath();
+        ctx.arc(sx, sy - 4, e.size, 0, Math.PI);
+        ctx.bezierCurveTo(sx + e.size, sy + 4, sx + e.size * 0.5, sy + e.size + 4, sx, sy + e.size);
+        ctx.bezierCurveTo(sx - e.size * 0.5, sy + e.size + 4, sx - e.size, sy + 4, sx - e.size, sy - 4);
+        ctx.closePath();
+        ctx.fill();
+        // Dark hollow eyes
+        ctx.fillStyle = '#1e3a5f';
+        ctx.beginPath(); ctx.arc(sx - 4, sy - 4, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx + 4, sy - 4, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+
+      } else if (e.type === 'SnakeMonster') {
+        // Serpentine predator with hood and fangs
+        ctx.fillStyle = '#4d7c0f';
+        ctx.beginPath();
+        ctx.ellipse(sx, sy + 2, e.size * 1.1, e.size * 0.75, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Hood pattern
+        ctx.fillStyle = '#166534';
+        ctx.beginPath();
+        ctx.moveTo(sx - 8, sy - 2);
+        ctx.quadraticCurveTo(sx, sy - 18, sx + 8, sy - 2);
+        ctx.fill();
+        // Scales texture
+        ctx.fillStyle = '#3f6212';
+        for (let si = -1; si <= 1; si++) {
+          ctx.beginPath(); ctx.ellipse(sx + si * 6, sy + 4, 3, 2, 0, 0, Math.PI * 2); ctx.fill();
+        }
+        // Forked tongue
+        ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(sx, sy + 8); ctx.lineTo(sx, sy + 14); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sx, sy + 14); ctx.lineTo(sx - 4, sy + 18); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sx, sy + 14); ctx.lineTo(sx + 4, sy + 18); ctx.stroke();
+        // Eyes
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath(); ctx.arc(sx - 6, sy - 4, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx + 6, sy - 4, 3, 0, Math.PI * 2); ctx.fill();
+
+      } else if (e.type === 'OxBeast') {
+        // Massive ox-like beast — hulking shoulders, horns
+        ctx.fillStyle = '#78350f';
+        ctx.beginPath();
+        ctx.ellipse(sx, sy + 4, e.size * 1.1, e.size * 0.9, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Giant curved horns
+        ctx.strokeStyle = '#d97706'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(sx - e.size, sy - 4); ctx.quadraticCurveTo(sx - e.size - 12, sy - 18, sx - e.size + 4, sy - 24); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sx + e.size, sy - 4); ctx.quadraticCurveTo(sx + e.size + 12, sy - 18, sx + e.size - 4, sy - 24); ctx.stroke();
+        // Red eyes
+        ctx.fillStyle = '#dc2626';
+        ctx.beginPath(); ctx.arc(sx - 6, sy - 2, 3.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx + 6, sy - 2, 3.5, 0, Math.PI * 2); ctx.fill();
+        // Nostrils
+        ctx.fillStyle = '#451a03';
+        ctx.beginPath(); ctx.arc(sx - 3, sy + 6, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx + 3, sy + 6, 2, 0, Math.PI * 2); ctx.fill();
+
+      } else if (e.type === 'Succubus') {
+        // Succubus — elegant winged figure in magenta
+        ctx.fillStyle = '#be185d';
+        ctx.beginPath();
+        ctx.ellipse(sx, sy + 2, e.size * 0.65, e.size, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Bat-like wings
+        ctx.fillStyle = '#9d174d';
+        ctx.beginPath();
+        ctx.moveTo(sx - e.size * 0.6, sy);
+        ctx.bezierCurveTo(sx - e.size * 1.8, sy - 14, sx - e.size * 1.4, sy + 10, sx - e.size * 0.6, sy + 8);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(sx + e.size * 0.6, sy);
+        ctx.bezierCurveTo(sx + e.size * 1.8, sy - 14, sx + e.size * 1.4, sy + 10, sx + e.size * 0.6, sy + 8);
+        ctx.fill();
+        // Horns
+        ctx.strokeStyle = '#fda4af'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(sx - 5, sy - e.size); ctx.lineTo(sx - 8, sy - e.size - 8); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sx + 5, sy - e.size); ctx.lineTo(sx + 8, sy - e.size - 8); ctx.stroke();
+        // Glowing pink eyes
+        ctx.fillStyle = '#f9a8d4';
+        ctx.beginPath(); ctx.arc(sx - 4, sy - 4, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx + 4, sy - 4, 2.5, 0, Math.PI * 2); ctx.fill();
+
+      } else if (e.type === 'NightCreature') {
+        // Shadow creature — shifting black mass with eye
+        ctx.save();
+        ctx.globalAlpha = 0.85;
+        const pulse = Math.sin(Date.now() * 0.006) * 2;
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(sx, sy, e.size + pulse, 0, Math.PI * 2);
+        ctx.fill();
+        // Single menacing eye
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(sx, sy - 2, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(sx + 1, sy - 2, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+      } else if (e.type === 'Frankenstein') {
+        // Frankenstein — massive square-headed monster
+        ctx.fillStyle = '#365314';
+        // Body — wide rectangle
+        ctx.fillRect(sx - e.size, sy - e.size * 0.6, e.size * 2, e.size * 1.4);
+        // Head — square
+        ctx.fillStyle = '#4d7c0f';
+        ctx.fillRect(sx - e.size * 0.75, sy - e.size * 1.6, e.size * 1.5, e.size * 1.1);
+        // Neck bolts
+        ctx.fillStyle = '#713f12';
+        ctx.fillRect(sx - e.size - 4, sy - e.size * 0.8, 6, 10);
+        ctx.fillRect(sx + e.size - 2, sy - e.size * 0.8, 6, 10);
+        // Stitches across forehead
+        ctx.strokeStyle = '#84cc16'; ctx.lineWidth = 1.5;
+        for (let si = 0; si < 4; si++) {
+          const stitchX = sx - 10 + si * 7;
+          ctx.beginPath(); ctx.moveTo(stitchX, sy - e.size * 1.3); ctx.lineTo(stitchX, sy - e.size * 1.0); ctx.stroke();
+        }
+        // Yellow glowing eyes
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath(); ctx.arc(sx - 6, sy - e.size * 1.1, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx + 6, sy - e.size * 1.1, 4, 0, Math.PI * 2); ctx.fill();
+
+      } else if (e.type === 'CrocodileKing') {
+        // Crocodile King — wide low body, long snout
+        ctx.fillStyle = '#166534';
+        ctx.beginPath();
+        ctx.ellipse(sx, sy + 4, e.size * 1.3, e.size * 0.65, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Crown
+        ctx.fillStyle = '#854d0e';
+        ctx.fillRect(sx - 10, sy - e.size - 8, 20, 6);
+        ctx.beginPath(); ctx.moveTo(sx - 10, sy - e.size - 8); ctx.lineTo(sx - 6, sy - e.size - 16); ctx.lineTo(sx - 2, sy - e.size - 8); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(sx, sy - e.size - 8); ctx.lineTo(sx + 4, sy - e.size - 18); ctx.lineTo(sx + 8, sy - e.size - 8); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(sx + 4, sy - e.size - 8); ctx.lineTo(sx + 8, sy - e.size - 14); ctx.lineTo(sx + 12, sy - e.size - 8); ctx.fill();
+        // Teeth row
+        ctx.fillStyle = '#f8fafc';
+        for (let ti = 0; ti < 5; ti++) {
+          ctx.beginPath(); ctx.moveTo(sx - 12 + ti * 6, sy + 8); ctx.lineTo(sx - 9 + ti * 6, sy + 14); ctx.lineTo(sx - 6 + ti * 6, sy + 8); ctx.fill();
+        }
+        // Gold vertical slit eyes
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath(); ctx.arc(sx - 7, sy - 2, 3.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx + 7, sy - 2, 3.5, 0, Math.PI * 2); ctx.fill();
+
+      } else if (e.type === 'CountDracula') {
+        // Count Dracula — noble vampire in cape
+        ctx.fillStyle = '#7f1d1d';
+        ctx.beginPath();
+        ctx.ellipse(sx, sy + 2, e.size * 0.65, e.size, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Black cape spread
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.moveTo(sx - e.size * 0.6, sy - e.size * 0.3);
+        ctx.bezierCurveTo(sx - e.size * 2, sy + e.size * 0.5, sx - e.size * 1.5, sy + e.size * 1.5, sx - e.size * 0.3, sy + e.size);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(sx + e.size * 0.6, sy - e.size * 0.3);
+        ctx.bezierCurveTo(sx + e.size * 2, sy + e.size * 0.5, sx + e.size * 1.5, sy + e.size * 1.5, sx + e.size * 0.3, sy + e.size);
+        ctx.fill();
+        // Widow's peak hair
+        ctx.fillStyle = '#1c1917';
+        ctx.beginPath(); ctx.moveTo(sx - 10, sy - e.size); ctx.lineTo(sx, sy - e.size + 8); ctx.lineTo(sx + 10, sy - e.size); ctx.fill();
+        // Red glowing eyes
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath(); ctx.arc(sx - 4, sy - 4, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx + 4, sy - 4, 3, 0, Math.PI * 2); ctx.fill();
+        // White fangs
+        ctx.fillStyle = '#f8fafc';
+        ctx.beginPath(); ctx.moveTo(sx - 4, sy + 3); ctx.lineTo(sx - 2, sy + 8); ctx.lineTo(sx, sy + 3); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(sx, sy + 3); ctx.lineTo(sx + 2, sy + 8); ctx.lineTo(sx + 4, sy + 3); ctx.fill();
+
+      } else if (e.type === 'CthulhuSquid') {
+        // Cthulhu Squid — massive pulsing tentacled horror
+        ctx.save();
+        ctx.globalAlpha = 0.9;
+        const cPulse = Math.sin(Date.now() * 0.003) * 2;
+        // Body
+        ctx.fillStyle = '#0d9488';
+        ctx.beginPath();
+        ctx.ellipse(sx, sy, e.size + cPulse, e.size * 1.1 + cPulse, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Tentacles — 6 waving arms
+        ctx.strokeStyle = '#0f766e'; ctx.lineWidth = 3;
+        for (let ti = 0; ti < 6; ti++) {
+          const tAngle = (Math.PI * 2 / 6) * ti + Date.now() * 0.002;
+          const tLen = e.size + 12;
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.quadraticCurveTo(
+            sx + Math.cos(tAngle) * tLen * 0.5, sy + Math.sin(tAngle) * tLen * 0.5,
+            sx + Math.cos(tAngle) * tLen, sy + Math.sin(tAngle) * tLen
+          );
+          ctx.stroke();
+        }
+        // Massive glowing eye
+        ctx.fillStyle = '#fde68a';
+        ctx.beginPath(); ctx.arc(sx, sy - 4, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.beginPath(); ctx.arc(sx + 2, sy - 4, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+
+      } else if (e.type === 'VampireLord') {
+        // Vampire Lord — tall elegant figure
+        ctx.fillStyle = '#4c0519';
+        ctx.beginPath();
+        ctx.ellipse(sx, sy, e.size * 0.6, e.size, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Dark red aura shimmer
+        ctx.strokeStyle = '#9f1239';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(sx, sy, e.size + 4 + Math.sin(Date.now() * 0.005) * 2, 0, Math.PI * 2);
+        ctx.stroke();
+        // Red eyes
+        ctx.fillStyle = '#fca5a5';
+        ctx.beginPath(); ctx.arc(sx - 4, sy - 4, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx + 4, sy - 4, 3, 0, Math.PI * 2); ctx.fill();
+
+      } else {
+        drawProceduralEnemyBody(ctx, e, sx, sy, gameFrame.current);
       }
 
       // Enemy HP Bar
@@ -3203,6 +3093,41 @@ export default function DungeonCanvas({
       ctx.fillStyle = e.isBoss ? '#ea580c' : '#ef4444'; // Orange for boss, red for regular
       ctx.fillRect(sx - e.size, sy - e.size - 10, hpBarW * hpPercent, 4);
     });
+
+    // Boss UI overlay
+    const bossEntity = enemiesRef.current.find(enemy => enemy.isBoss);
+    if (bossEntity) {
+      const barWidth = Math.min(dimensions.width - 140, 520);
+      const overlayX = (dimensions.width - barWidth) / 2;
+      const overlayY = 16;
+      const bossHealthPct = Math.max(0, Math.min(1, bossEntity.health / bossEntity.maxHealth));
+
+      ctx.fillStyle = 'rgba(12, 12, 12, 0.85)';
+      ctx.fillRect(overlayX, overlayY, barWidth, 46);
+      ctx.strokeStyle = 'rgba(244, 63, 94, 0.85)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(overlayX, overlayY, barWidth, 46);
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '18px Georgia';
+      ctx.textAlign = 'left';
+      ctx.fillText(`BOSS: ${bossEntity.name}`, overlayX + 16, overlayY + 24);
+
+      const innerWidth = barWidth - 32;
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(overlayX + 16, overlayY + 28, innerWidth, 10);
+      ctx.fillStyle = '#f97316';
+      ctx.fillRect(overlayX + 16, overlayY + 28, innerWidth * bossHealthPct, 10);
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(overlayX + 16, overlayY + 28, innerWidth, 10);
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '12px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${Math.round(bossHealthPct * 100)}%`, overlayX + barWidth / 2, overlayY + 38);
+      ctx.textAlign = 'start';
+    }
 
     // 4. Draw Player
     const psx = player.x - cx;
@@ -3221,31 +3146,54 @@ export default function DungeonCanvas({
       // 1. Cape (drawn behind body)
       ctx.fillStyle = player.customization?.capeColor || '#991b1b';
       ctx.beginPath();
-      ctx.arc(psx, psy + 4, player.size * 0.9, 0, Math.PI * 2);
+      ctx.ellipse(psx, psy + 5, player.size * 0.8, player.size * 1.15, 0, 0, Math.PI * 2);
       ctx.fill();
 
       // 2. Body / Torso (Armor dependent color representation)
-      let bodyColor = '#3b82f6';
-      if (player.equipped.Armor) {
-        if (player.equipped.Armor.rarity === 'Legendary') bodyColor = '#fbbf24';
-        else if (player.equipped.Armor.rarity === 'Epic') bodyColor = '#c084fc';
-        else if (player.equipped.Armor.rarity === 'Rare') bodyColor = '#60a5fa';
-        else bodyColor = '#a1a1aa';
-      } else {
-        if (player.class === 'VampireHunter') bodyColor = '#2563eb';
-        else if (player.class === 'RenegadeVampire') bodyColor = '#881337';
-        else bodyColor = '#3f3f46';
-      }
+      let bodyColor = player.class === 'VampireHunter' ? '#2563eb'
+        : player.class === 'RenegadeVampire' ? '#881337'
+        : player.class === 'DraconicKnight' ? '#78350f'
+        : player.class === 'ElvenRanger' ? '#047857'
+        : player.class === 'OrcBerserker' ? '#365314'
+        : '#6d28d9';
+      if (player.equipped.Armor?.rarity === 'Legendary') bodyColor = '#fbbf24';
+      else if (player.equipped.Armor?.rarity === 'Epic') bodyColor = '#c084fc';
+      else if (player.equipped.Armor?.rarity === 'Rare') bodyColor = '#60a5fa';
+      const isFemaleFrame = player.customization?.gender === 'Female' || player.class === 'ArcaneSorceress';
+      const torsoW = isFemaleFrame ? player.size * 0.7 : player.size * 0.9;
       ctx.fillStyle = bodyColor;
       ctx.beginPath();
-      ctx.arc(psx, psy, player.size * 0.85, 0, Math.PI * 2);
+      ctx.moveTo(psx - torsoW, psy - 3);
+      ctx.lineTo(psx + torsoW, psy - 3);
+      ctx.lineTo(psx + player.size * 0.58, psy + player.size);
+      ctx.lineTo(psx - player.size * 0.58, psy + player.size);
+      ctx.closePath();
       ctx.fill();
+      ctx.fillStyle = lighten(bodyColor, 45);
+      ctx.fillRect(psx - 1, psy - 3, 2, player.size + 3);
 
       // 3. Head / Face complexion
       ctx.fillStyle = player.customization?.skinColor || '#f5f5f4';
       ctx.beginPath();
       ctx.arc(psx, psy - 4, 6, 0, Math.PI * 2);
       ctx.fill();
+      if (player.class === 'ElvenRanger') {
+        ctx.fillStyle = player.customization?.skinColor || '#f5f5f4';
+        ctx.beginPath();
+        ctx.moveTo(psx - 5, psy - 6);
+        ctx.lineTo(psx - 13, psy - 10);
+        ctx.lineTo(psx - 6, psy - 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(psx + 5, psy - 6);
+        ctx.lineTo(psx + 13, psy - 10);
+        ctx.lineTo(psx + 6, psy - 2);
+        ctx.fill();
+      } else if (player.class === 'OrcBerserker') {
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(psx - 4, psy + 1, 2, 5);
+        ctx.fillRect(psx + 2, psy + 1, 2, 5);
+      }
 
       // 4. Hair / Cowl / Plume selection
       ctx.fillStyle = player.customization?.hairColor || '#1c1917';
@@ -3269,6 +3217,22 @@ export default function DungeonCanvas({
         ctx.lineTo(psx - 7, psy);
         ctx.closePath();
         ctx.fill();
+      } else if (hairStyle.includes('Antlers')) {
+        ctx.beginPath();
+        ctx.arc(psx, psy - 8, 6, Math.PI, 0);
+        ctx.fill();
+        ctx.strokeStyle = '#d6d3d1';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(psx - 5, psy - 9);
+        ctx.lineTo(psx - 12, psy - 18);
+        ctx.moveTo(psx + 5, psy - 9);
+        ctx.lineTo(psx + 12, psy - 18);
+        ctx.stroke();
+      } else if (hairStyle.includes('Warhawk')) {
+        ctx.fillRect(psx - 2, psy - 17, 4, 10);
+        ctx.fillStyle = '#111827';
+        ctx.fillRect(psx - 6, psy - 10, 12, 3);
       } else {
         // Draw normal hair locks
         ctx.fillRect(psx - 5, psy - 10, 10, 4); // cap/bandana base
@@ -3304,9 +3268,34 @@ export default function DungeonCanvas({
         ctx.lineTo(wx, wy);
         ctx.stroke();
 
-        // Draw dynamic weapon hilt/crossguard
-        ctx.fillStyle = '#fbbf24';
-        ctx.fillRect((psx + wx) / 2 - 1.5, (psy + wy) / 2 - 1.5, 3, 3);
+        const weaponName = player.equipped.Weapon.name;
+        if (weaponName.includes('Bow')) {
+          ctx.strokeStyle = '#d6a35d';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(wx, wy, 9, -Math.PI / 2, Math.PI / 2);
+          ctx.stroke();
+          ctx.strokeStyle = '#e5e7eb';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(wx, wy - 9);
+          ctx.lineTo(wx, wy + 9);
+          ctx.stroke();
+        } else if (weaponName.includes('Axe')) {
+          ctx.fillStyle = '#94a3b8';
+          ctx.fillRect(wx - 3, wy - 8, 9, 7);
+          ctx.fillStyle = '#3f2e1f';
+          ctx.fillRect(wx - 1, wy - 2, 3, 10);
+        } else if (weaponName.includes('Staff')) {
+          ctx.fillStyle = player.customization?.eyeColor || '#a855f7';
+          ctx.beginPath();
+          ctx.arc(wx, wy, 4, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          // Draw dynamic weapon hilt/crossguard
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillRect((psx + wx) / 2 - 1.5, (psy + wy) / 2 - 1.5, 3, 3);
+        }
       }
 
       // Active Blood shield visual overlay
@@ -3367,6 +3356,65 @@ export default function DungeonCanvas({
       {settings.crtScanlines && <div className="crt-scanlines" />}
       {settings.crtScanlines && <div className="crt-glow" />}
       {settings.pixelVignette && <div className="crt-vignette" />}
+
+      {/* Cinematic Floor Banner */}
+      {showFloorBanner && !bossIntroActive && (
+        <div className="absolute top-1/4 left-0 w-full flex flex-col items-center justify-center pointer-events-none z-40" style={{ animation: 'fadeInOut 3.5s ease-in-out' }}>
+          <style>{`
+            @keyframes fadeInOut {
+              0% { opacity: 0; transform: translateY(-20px); }
+              10% { opacity: 1; transform: translateY(0); }
+              90% { opacity: 1; transform: translateY(0); }
+              100% { opacity: 0; transform: translateY(-20px); }
+            }
+          `}</style>
+          <div className="bg-black/70 backdrop-blur-md w-full py-8 border-y-2 border-red-900/60 text-center shadow-[0_0_50px_rgba(153,27,27,0.3)]">
+            <h1 className="text-4xl md:text-6xl font-black text-red-500 uppercase tracking-[0.25em] mb-4 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]">
+              {GameManager.getKingdomName(level.kingdomIndex || 1)}
+            </h1>
+            <div className="flex items-center justify-center gap-6">
+              <div className="w-16 h-px bg-red-900/80" />
+              <span className="text-xl md:text-3xl text-zinc-200 font-serif italic tracking-wide">
+                Floor {level.floorIndex} — {GameManager.getFloorDescriptor(level.kingdomIndex || 1, level.floorIndex).name}
+              </span>
+              <div className="w-16 h-px bg-red-900/80" />
+            </div>
+            <p className="text-sm text-red-400 uppercase tracking-[0.3em] mt-4 font-mono font-bold">
+              {GameManager.getFloorDescriptor(level.kingdomIndex || 1, level.floorIndex).subtitle}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Boss Intro Sequence */}
+      {bossIntroActive && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-lg">
+          <div className="w-full max-w-4xl text-center px-8">
+            <h2 className="text-3xl md:text-5xl text-red-600 font-serif italic mb-12 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]">
+              {GameManager.getBossForKingdom(level.kingdomIndex || 1)}
+            </h2>
+            <div className="min-h-[100px] flex items-center justify-center">
+              <p className="text-2xl md:text-4xl text-zinc-100 font-medium tracking-wide leading-relaxed" style={{ animation: 'fadeIn 0.5s ease-out' }}>
+                "{bossIntroTextLines[bossIntroLineIndex]}"
+              </p>
+            </div>
+            <div className="mt-16 flex items-center justify-center">
+              <button
+                onClick={() => {
+                  if (bossIntroLineIndex < bossIntroTextLines.length - 1) {
+                    setBossIntroLineIndex(prev => prev + 1);
+                  } else {
+                    setBossIntroActive(false);
+                  }
+                }}
+                className="px-10 py-4 bg-red-950/60 border-2 border-red-900 text-red-200 text-xl hover:bg-red-800 hover:text-white rounded-lg font-mono uppercase tracking-[0.2em] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(153,27,27,0.6)]"
+              >
+                {bossIntroLineIndex < bossIntroTextLines.length - 1 ? 'Continue' : 'Engage in Battle'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Branching Dialogue Overlay */}
       {activeDialogue && (

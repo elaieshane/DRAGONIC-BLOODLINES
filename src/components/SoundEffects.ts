@@ -3,7 +3,7 @@
 let audioCtx: AudioContext | null = null;
 let bgmInterval: number | null = null;
 let currentBgmNodes: AudioNode[] = [];
-let bgmTheme: 'explore' | 'boss' | 'none' = 'none';
+let bgmTheme: 'explore' | 'boss' | 'victory' | 'none' = 'none';
 let bgmVolumeNode: GainNode | null = null;
 let masterVolume = 0.3; // Default master volume
 
@@ -268,7 +268,7 @@ export function stopBGM() {
   bgmTheme = 'none';
 }
 
-export function startBGM(theme: 'explore' | 'boss') {
+export function startBGM(theme: 'explore' | 'boss' | 'victory') {
   if (bgmTheme === theme) return; // Already playing
   stopBGM();
   bgmTheme = theme;
@@ -308,6 +308,13 @@ export function startBGM(theme: 'explore' | 'boss') {
       146.83, 174.61, 220.00, 293.66, 349.23, 293.66, 220.00, 174.61,
     ];
 
+    const victoryMelody = [
+      392.00, 349.23, 330.00, 293.66, 261.63, 293.66, 330.00, 349.23,
+      392.00, 440.00, 493.88, 523.25, 587.33, 523.25, 493.88, 440.00,
+      392.00, 349.23, 330.00, 293.66, 261.63, 293.66, 330.00, 349.23,
+      392.00, 440.00, 493.88, 523.25, 587.33, 523.25, 493.88, 440.00,
+    ];
+
     const bossBass = [
       98.00, 146.83, 98.00, 146.83, // Fast alternating bass
       98.00, 146.83, 98.00, 146.83,
@@ -321,7 +328,7 @@ export function startBGM(theme: 'explore' | 'boss') {
       // Melody note (Square/Triangle lead)
       const isLeadStep = step % 2 === 0;
       if (isLeadStep) {
-        const melodyArray = theme === 'boss' ? bossMelody : exploreMelody;
+        const melodyArray = theme === 'boss' ? bossMelody : theme === 'victory' ? victoryMelody : exploreMelody;
         const melodyIdx = (step / 2) % melodyArray.length;
         const freq = melodyArray[melodyIdx];
 
@@ -360,7 +367,7 @@ export function startBGM(theme: 'explore' | 'boss') {
       // Bass note (Deep warm triangle or pulse wave)
       const isBassStep = step % 4 === 0;
       if (isBassStep) {
-        const bassArray = theme === 'boss' ? bossBass : exploreBass;
+        const bassArray = theme === 'boss' ? bossBass : theme === 'victory' ? bossBass : exploreBass;
         const bassIdx = (step / 4) % bassArray.length;
         const bassFreq = bassArray[bassIdx];
 

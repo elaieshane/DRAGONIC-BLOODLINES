@@ -118,3 +118,58 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #ef4444;
 }
+
+/* Animated Codex Creature Presentation */
+.codex-creature-root {
+  transform-origin: center bottom;
+}
+
+.codex-creature-root.codex-idle .codex-bob {
+  animation: codex-bob 3.5s ease-in-out infinite;
+}
+
+.codex-creature-root.codex-walk .codex-bob {
+  animation: codex-bob 1.8s ease-in-out infinite;
+}
+
+.codex-creature-root.codex-attack .codex-bob {
+  animation: codex-strike 1.2s ease-in-out infinite;
+}
+
+.codex-creature-root.codex-walk .codex-left-arm,
+.codex-creature-root.codex-walk .codex-right-arm,
+.codex-creature-root.codex-walk .codex-left-leg,
+.codex-creature-root.codex-walk .codex-right-leg {
+  animation: codex-limb-step 1.8s ease-in-out infinite;
+  transform-origin: center top;
+}
+
+.codex-creature-root.codex-attack .codex-left-arm,
+.codex-creature-root.codex-attack .codex-right-arm {
+  animation: codex-attack-swing 1.2s ease-in-out infinite;
+  transform-origin: center top;
+}
+
+@keyframes codex-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes codex-strike {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-12px); }
+  60% { transform: translateY(4px); }
+}
+
+@keyframes codex-limb-step {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(12deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(-8deg); }
+}
+
+@keyframes codex-attack-swing {
+  0%, 100% { transform: rotate(0deg); }
+  40% { transform: rotate(18deg); }
+  60% { transform: rotate(-6deg); }
+}

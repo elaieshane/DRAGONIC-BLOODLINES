@@ -25,19 +25,25 @@ export default function CharacterSheet({
 
   const getRarityColor = (rarity: Item['rarity']) => {
     switch (rarity) {
-      case 'Legendary': return 'text-amber-400 border-amber-500 bg-amber-950/30';
-      case 'Epic': return 'text-purple-400 border-purple-500 bg-purple-950/30';
-      case 'Rare': return 'text-blue-400 border-blue-500 bg-blue-950/30';
-      default: return 'text-zinc-400 border-zinc-600 bg-zinc-900/30';
+      case 'Dragonborn': return 'text-orange-300 border-orange-400 bg-orange-950/40';
+      case 'Ancient':    return 'text-amber-200 border-amber-300 bg-amber-950/50';
+      case 'Mythic':     return 'text-violet-300 border-violet-400 bg-violet-950/40';
+      case 'Legendary':  return 'text-amber-400 border-amber-500 bg-amber-950/30';
+      case 'Epic':       return 'text-purple-400 border-purple-500 bg-purple-950/30';
+      case 'Rare':       return 'text-blue-400 border-blue-500 bg-blue-950/30';
+      default:           return 'text-zinc-400 border-zinc-600 bg-zinc-900/30';
     }
   };
 
   const getRarityBorder = (rarity: Item['rarity']) => {
     switch (rarity) {
-      case 'Legendary': return 'border-amber-500/80 shadow-[0_0_10px_rgba(245,158,11,0.2)]';
-      case 'Epic': return 'border-purple-500/80 shadow-[0_0_10px_rgba(168,85,247,0.2)]';
-      case 'Rare': return 'border-blue-500/80 shadow-[0_0_10px_rgba(59,130,246,0.2)]';
-      default: return 'border-zinc-700/80';
+      case 'Dragonborn': return 'border-orange-400/80 shadow-[0_0_12px_rgba(251,146,60,0.4)]';
+      case 'Ancient':    return 'border-amber-200/80 shadow-[0_0_12px_rgba(253,230,138,0.4)]';
+      case 'Mythic':     return 'border-violet-500/80 shadow-[0_0_12px_rgba(167,139,250,0.3)]';
+      case 'Legendary':  return 'border-amber-500/80 shadow-[0_0_10px_rgba(245,158,11,0.2)]';
+      case 'Epic':       return 'border-purple-500/80 shadow-[0_0_10px_rgba(168,85,247,0.2)]';
+      case 'Rare':       return 'border-blue-500/80 shadow-[0_0_10px_rgba(59,130,246,0.2)]';
+      default:           return 'border-zinc-700/80';
     }
   };
 
@@ -54,6 +60,8 @@ export default function CharacterSheet({
       player.equipped.Armor,
       player.equipped.Ring,
       player.equipped.Relic,
+      player.equipped.Crest,
+      player.equipped.Scroll,
     ].filter((i): i is Item => i !== null);
 
     let bonusHp = 0;
@@ -391,11 +399,7 @@ export default function CharacterSheet({
                             <div className={`text-xl ${getRarityColor(item.rarity)}`}>💍</div>
                             <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                               <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  playSound('chest');
-                                  onUnequip(type);
-                                }}
+                                onClick={(e) => { e.stopPropagation(); playSound('chest'); onUnequip(type); }}
                                 className="text-[9px] bg-red-950 text-red-400 border border-red-800 rounded px-1"
                               >
                                 UNEQUIP
@@ -403,9 +407,94 @@ export default function CharacterSheet({
                             </div>
                           </div>
                         ) : (
-                          <div className="w-14 h-14 rounded-lg border border-dashed border-zinc-800 bg-zinc-950/20 flex items-center justify-center text-zinc-700 text-lg">
-                            ∅
+                          <div className="w-14 h-14 rounded-lg border border-dashed border-zinc-800 bg-zinc-950/20 flex items-center justify-center text-zinc-700 text-lg">∅</div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Relic Slot */}
+                  {(() => {
+                    const type = 'Relic';
+                    const item = player.equipped[type];
+                    return (
+                      <div className="flex flex-col items-center">
+                        <span className="text-[9px] text-zinc-500 uppercase mb-1 font-mono">{type}</span>
+                        {item ? (
+                          <div 
+                            onClick={() => handleItemClick(item)}
+                            className={`w-14 h-14 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 bg-zinc-950 p-1 relative group ${getRarityBorder(item.rarity)}`}
+                          >
+                            <div className={`text-xl ${getRarityColor(item.rarity)}`}>🏺</div>
+                            <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); playSound('chest'); onUnequip(type); }}
+                                className="text-[9px] bg-red-950 text-red-400 border border-red-800 rounded px-1"
+                              >
+                                UNEQUIP
+                              </button>
+                            </div>
                           </div>
+                        ) : (
+                          <div className="w-14 h-14 rounded-lg border border-dashed border-zinc-800 bg-zinc-950/20 flex items-center justify-center text-zinc-700 text-lg">∅</div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Crest Slot */}
+                  {(() => {
+                    const type = 'Crest';
+                    const item = player.equipped[type];
+                    return (
+                      <div className="flex flex-col items-center">
+                        <span className="text-[9px] text-amber-700 uppercase mb-1 font-mono">{type}</span>
+                        {item ? (
+                          <div 
+                            onClick={() => handleItemClick(item)}
+                            className={`w-14 h-14 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 bg-zinc-950 p-1 relative group ${getRarityBorder(item.rarity)}`}
+                          >
+                            <div className="text-2xl">{item.icon || '🔥'}</div>
+                            <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); playSound('chest'); onUnequip(type); }}
+                                className="text-[9px] bg-red-950 text-red-400 border border-red-800 rounded px-1"
+                              >
+                                UNEQUIP
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-14 h-14 rounded-lg border border-dashed border-amber-900/40 bg-amber-950/10 flex flex-col items-center justify-center text-amber-900 text-xs font-mono"><span className="text-2xl opacity-30">🔥</span></div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Scroll Slot */}
+                  {(() => {
+                    const type = 'Scroll';
+                    const item = player.equipped[type];
+                    return (
+                      <div className="flex flex-col items-center">
+                        <span className="text-[9px] text-blue-700 uppercase mb-1 font-mono">{type}</span>
+                        {item ? (
+                          <div 
+                            onClick={() => handleItemClick(item)}
+                            className={`w-14 h-14 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 bg-zinc-950 p-1 relative group ${getRarityBorder(item.rarity)}`}
+                          >
+                            <div className="text-2xl">{item.icon || '📜'}</div>
+                            <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); playSound('chest'); onUnequip(type); }}
+                                className="text-[9px] bg-red-950 text-red-400 border border-red-800 rounded px-1"
+                              >
+                                UNEQUIP
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-14 h-14 rounded-lg border border-dashed border-blue-900/40 bg-blue-950/10 flex flex-col items-center justify-center text-blue-900 text-xs font-mono"><span className="text-2xl opacity-30">📜</span></div>
                         )}
                       </div>
                     );
@@ -452,7 +541,7 @@ export default function CharacterSheet({
             {/* Inventory Grid */}
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 flex-1 flex flex-col">
               <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3 flex justify-between items-center">
-                <span>Inventory ({player.inventory.length}/15)</span>
+                <span>Inventory ({player.inventory.length}/20)</span>
                 {player.inventory.length === 0 && <span className="text-xs text-zinc-600 italic">Empty</span>}
               </h3>
               
@@ -462,15 +551,22 @@ export default function CharacterSheet({
                     key={item.id}
                     onClick={() => handleItemClick(item)}
                     className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 p-1 relative bg-zinc-950 ${selectedItem?.id === item.id ? 'ring-2 ring-red-500' : ''} ${getRarityBorder(item.rarity)}`}
+                    title={item.name}
                   >
-                    <div className="text-lg">
-                      {item.type === 'Weapon' ? '⚔️' : item.type === 'Armor' ? '🛡️' : item.type === 'Ring' ? '💍' : '🏺'}
+                    <div className="text-xl">
+                      {item.type === 'Weapon'  ? '⚔️'
+                      : item.type === 'Armor'   ? '🛡️'
+                      : item.type === 'Ring'    ? '💍'
+                      : item.type === 'Crest'   ? (item.icon || '🔥')
+                      : item.type === 'Scroll'  ? (item.icon || '📜')
+                      : item.type === 'PetEgg'  ? '🥚'
+                      : '🏺'}
                     </div>
                   </div>
                 ))}
 
-                {/* Fill rest of grid up to 15 slots */}
-                {Array.from({ length: Math.max(0, 15 - player.inventory.length) }).map((_, i) => (
+                {/* Fill rest of grid up to 20 slots */}
+                {Array.from({ length: Math.max(0, 20 - player.inventory.length) }).map((_, i) => (
                   <div 
                     key={`empty-${i}`} 
                     className="w-12 h-12 rounded-lg border border-zinc-800/40 bg-zinc-950/10"
@@ -574,6 +670,92 @@ export default function CharacterSheet({
             </div>
           </div>
         </div>
+
+        {/* ─── Active Pet Panel ─────────────────────────────────────── */}
+        {player.activePet && (() => {
+          const pet = player.activePet!;
+          const bp = { Ash: '🔥', Umbra: '🌑', BoneHound: '🦴', SeraphRaven: '✨', IronBear: '🐻', VoidOwl: '🦉' }[pet.species] || '🐾';
+          const evolutionNames: Record<string, string[]> = {
+            Ash: ['Ash', 'Young Flame Drake', 'Ancient Flame Dragon'],
+            Umbra: ['Umbra', 'Shadowcat', 'Eclipse Panther'],
+            BoneHound: ['Bone Pup', 'Bone Hound', 'Hellhound Alpha'],
+            SeraphRaven: ['Seraph Fledgling', 'Seraph Raven', 'Divine Raven'],
+            IronBear: ['Iron Cub', 'Iron Bear', 'Titanborn Behemoth'],
+            VoidOwl: ['Void Owlet', 'Void Owl', 'Singularity Owl'],
+          };
+          const evolutionName = (evolutionNames[pet.species] || [])[pet.evolutionStage] || pet.name;
+          const moodColor = { Happy: 'text-green-400', Calm: 'text-blue-300', Aggressive: 'text-red-400', Exhausted: 'text-zinc-400', Bonded: 'text-amber-400' }[pet.mood] || 'text-zinc-300';
+          const bondColor = pet.bond >= 75 ? 'bg-amber-500' : pet.bond >= 50 ? 'bg-emerald-500' : pet.bond >= 25 ? 'bg-blue-500' : 'bg-zinc-500';
+          const rarityGlow = pet.rarity === 'Legendary' ? 'border-amber-500 shadow-[0_0_16px_rgba(245,158,11,0.25)]' : pet.rarity === 'Epic' ? 'border-purple-500' : pet.rarity === 'Mythic' ? 'border-violet-400 shadow-[0_0_20px_rgba(167,139,250,0.3)]' : 'border-zinc-700';
+          return (
+            <div className={`mt-6 border-t border-zinc-800/60 pt-4`}>
+              <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <span>🐾</span> Active Familiar — <span className="text-amber-400">{evolutionName}</span>
+              </h3>
+              <div className={`rounded-xl border-2 ${rarityGlow} bg-zinc-950/80 p-5 flex flex-col md:flex-row gap-6`}>
+                {/* Pet Identity */}
+                <div className="flex flex-col items-center gap-2 min-w-[100px]">
+                  <div className="text-6xl">{bp}</div>
+                  <span className={`text-xs font-mono font-bold uppercase tracking-widest ${moodColor}`}>{pet.mood}</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">{pet.rarity}</span>
+                  <span className="text-[10px] text-zinc-400 font-mono">{pet.petClass} Class</span>
+                </div>
+                {/* Stats */}
+                <div className="flex-1 grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-xs">
+                  <div><span className="text-zinc-500">Name:</span> <span className="text-zinc-100 font-bold">{pet.name}</span></div>
+                  <div><span className="text-zinc-500">Level:</span> <span className="text-amber-400 font-bold">{pet.level}</span></div>
+                  <div><span className="text-zinc-500">Evolution:</span> <span className="text-emerald-400">{evolutionName}</span></div>
+                  <div><span className="text-zinc-500">Attack:</span> <span className="text-orange-400">{pet.attack}</span></div>
+                  <div><span className="text-zinc-500">Defense:</span> <span className="text-blue-400">{pet.defense}</span></div>
+                  <div><span className="text-zinc-500">AI State:</span> <span className="text-purple-300">{pet.aiState}</span></div>
+
+                  {/* HP Bar */}
+                  <div className="col-span-2">
+                    <div className="flex justify-between mb-1"><span className="text-zinc-500">HP:</span><span className="text-emerald-400">{pet.hp} / {pet.maxHp}</span></div>
+                    <div className="h-2 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+                      <div className="h-full bg-gradient-to-r from-emerald-700 to-emerald-400 transition-all" style={{ width: `${(pet.hp / pet.maxHp) * 100}%` }} />
+                    </div>
+                  </div>
+
+                  {/* Bond Bar */}
+                  <div className="col-span-2">
+                    <div className="flex justify-between mb-1"><span className="text-zinc-500">Bond:</span><span className="text-amber-400">{pet.bond.toFixed(0)}%</span></div>
+                    <div className="h-2 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+                      <div className={`h-full ${bondColor} transition-all`} style={{ width: `${pet.bond}%` }} />
+                    </div>
+                  </div>
+
+                  {/* XP Bar */}
+                  <div className="col-span-2">
+                    <div className="flex justify-between mb-1"><span className="text-zinc-500">Pet XP:</span><span className="text-purple-400">{pet.experience} / {pet.xpNeeded}</span></div>
+                    <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+                      <div className="h-full bg-gradient-to-r from-purple-700 to-purple-400 transition-all" style={{ width: `${(pet.experience / pet.xpNeeded) * 100}%` }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Skills */}
+                <div className="flex flex-col gap-2 min-w-[160px]">
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-2.5">
+                    <span className="text-[9px] text-zinc-500 uppercase font-mono">Passive</span>
+                    <p className="text-xs text-amber-300 font-bold mt-0.5">{pet.passiveSkill.name}</p>
+                    <p className="text-[10px] text-zinc-400 mt-0.5">{pet.passiveSkill.description}</p>
+                  </div>
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-2.5">
+                    <span className="text-[9px] text-zinc-500 uppercase font-mono">Active</span>
+                    <p className="text-xs text-blue-300 font-bold mt-0.5">{pet.activeSkill.name}</p>
+                    <p className="text-[10px] text-zinc-400 mt-0.5">{pet.activeSkill.description}</p>
+                  </div>
+                  <div className="rounded-lg border border-purple-900/40 bg-purple-950/20 p-2.5">
+                    <span className="text-[9px] text-purple-500 uppercase font-mono">Ultimate</span>
+                    <p className="text-xs text-purple-300 font-bold mt-0.5">{pet.ultimateSkill.name}</p>
+                    <p className="text-[10px] text-zinc-400 mt-0.5">{pet.ultimateSkill.description}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Character Boons / Perks section */}
         <div className="mt-6 border-t border-zinc-800/60 pt-4">

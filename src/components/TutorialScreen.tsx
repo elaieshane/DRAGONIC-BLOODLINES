@@ -6,6 +6,11 @@ import {
   ArrowRight, Move, ZapOff, Sparkles, HelpCircle 
 } from 'lucide-react';
 
+import combatImg from '../assets/images/gothic_combat_1783099557576.jpg';
+import magicImg from '../assets/images/gothic_dragon_fire_1783099571712.jpg';
+import bossImg from '../assets/images/gothic_boss_arena_1783099595514.jpg';
+import movementImg from '../assets/images/gothic_graveyard_1783099540725.jpg';
+
 interface TutorialScreenProps {
   playerClass: PlayerClass;
   onDescend: () => void;
@@ -32,18 +37,25 @@ export default function TutorialScreen({ playerClass, onDescend }: TutorialScree
     setActiveTab(tab);
   };
 
+  const tabProgress: Record<typeof activeTab, number> = {
+    movement: 25,
+    combat: 50,
+    magic: 75,
+    boss: 100,
+  };
+
   // Image path resolver based on current tutorial page
   const getIllustrationSrc = () => {
     switch (activeTab) {
       case 'combat':
-        return '/src/assets/images/gothic_combat_1783099557576.jpg';
+        return combatImg;
       case 'magic':
-        return '/src/assets/images/gothic_dragon_fire_1783099571712.jpg';
+        return magicImg;
       case 'boss':
-        return '/src/assets/images/gothic_boss_arena_1783099595514.jpg';
+        return bossImg;
       case 'movement':
       default:
-        return '/src/assets/images/gothic_graveyard_1783099540725.jpg';
+        return movementImg;
     }
   };
 
@@ -107,15 +119,23 @@ export default function TutorialScreen({ playerClass, onDescend }: TutorialScree
           
           {/* Header */}
           <div className="border-b border-zinc-900 pb-4">
-            <span className="text-yellow-500 font-mono text-[9px] font-bold uppercase tracking-widest">
-              PRE-DESCENT DEBRIEFING
-            </span>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-yellow-500 font-mono text-[9px] font-bold uppercase tracking-widest">
+                PRE-DESCENT DEBRIEFING
+              </span>
+              <div className="rounded-full border border-red-800/70 bg-red-950/30 px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.25em] text-red-300">
+                {tabProgress[activeTab]}% Ready
+              </div>
+            </div>
             <h1 className="text-xl md:text-2xl font-black font-serif text-zinc-100 tracking-wider mt-1">
               DRACONIC BLOODLINE GUIDE
             </h1>
             <p className="text-xs text-zinc-400 mt-1 font-serif leading-relaxed">
-              Equipping your <span className="text-red-400 font-bold font-mono">{getClassNameText()}</span> with procedural dungeon knowledge.
+              Equipping your <span className="text-red-400 font-bold font-mono">{getClassNameText()}</span> with the knowledge needed to survive the truth beneath the cathedral.
             </p>
+            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-zinc-900">
+              <div className="h-full rounded-full bg-gradient-to-r from-red-800 to-red-500 transition-all duration-300" style={{ width: `${tabProgress[activeTab]}%` }} />
+            </div>
           </div>
 
           {/* Tab Selection Row */}
@@ -126,8 +146,8 @@ export default function TutorialScreen({ playerClass, onDescend }: TutorialScree
                 onClick={() => selectTab(tab)}
                 className={`py-2 text-[10px] font-mono rounded cursor-pointer transition-all uppercase ${
                   activeTab === tab 
-                    ? 'bg-red-950/50 text-red-400 font-bold border border-red-900/50' 
-                    : 'text-zinc-500 hover:text-zinc-300'
+                    ? 'bg-red-950/50 text-red-400 font-bold border border-red-900/50 shadow-[0_0_10px_rgba(239,68,68,0.15)]' 
+                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/60'
                 }`}
               >
                 {tab}
@@ -241,10 +261,10 @@ export default function TutorialScreen({ playerClass, onDescend }: TutorialScree
           </div>
 
           {/* Action Row */}
-          <div className="border-t border-zinc-900 pt-4 flex items-center justify-between">
-            <span className="text-[9px] font-mono text-zinc-600 uppercase">
+          <div className="border-t border-zinc-900 pt-4 flex items-center justify-between gap-3">
+            <div className="rounded-full border border-zinc-800 bg-zinc-950/60 px-3 py-1.5 text-[9px] font-mono uppercase tracking-[0.25em] text-zinc-500">
               "The moon guides your stride..."
-            </span>
+            </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleStartGame}
@@ -256,7 +276,7 @@ export default function TutorialScreen({ playerClass, onDescend }: TutorialScree
                 onClick={handleStartGame}
                 className="px-6 py-2.5 bg-gradient-to-r from-red-800 to-red-600 hover:from-red-700 hover:to-red-500 text-white font-mono font-bold text-xs tracking-wider rounded-lg shadow-lg shadow-red-950/40 cursor-pointer hover:scale-[1.02] transition-all flex items-center gap-1.5"
               >
-                BEGIN QUEST ⚔️ <ArrowRight className="w-3.5 h-3.5" />
+                BEGIN DESCENT <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

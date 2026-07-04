@@ -8,14 +8,20 @@ import {
   HelpCircle, Lock, Gem, Landmark, Hammer, Eye, Compass, Skull, Coins, Bell, Gift
 } from 'lucide-react';
 
+import mainBannerImg from '../assets/images/gothic_main_banner_1783099342203.jpg';
+import mapImg from '../assets/images/map.png';
+
 interface MainMenuProps {
-  onStartGame: (selectedClass: PlayerClass, customization: PlayerCustomization) => void;
+  onStartGame: (selectedClass: PlayerClass, customization: PlayerCustomization, selectedKingdom?: number) => void;
   onOpenSettings: () => void;
+  onContinueGame?: () => void;
+  hasSave?: boolean;
 }
 
-export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps) {
+export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, hasSave }: MainMenuProps) {
   const [activeTab, setActiveTab] = useState<'champions' | 'inventory' | 'abilities' | 'crypts' | 'bestiary' | 'quests' | 'map' | 'settings'>('champions');
   const [selectedClass, setSelectedClass] = useState<PlayerClass>('VampireHunter');
+  const [selectedKingdom, setSelectedKingdom] = useState<number>(1);
   const [volume, setVolume] = useState<number>(0.3);
   const [muted, setMuted] = useState<boolean>(false);
   const [startedBgm, setStartedBgm] = useState<boolean>(false);
@@ -112,6 +118,78 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
         lore: 'A breastplate crafted from the scales of the Grave-Born Dragun, offering ultimate flame defense.'
       }
     },
+    ElvenRanger: {
+      name: 'Elven Ranger',
+      title: 'Moonwood pathfinder',
+      desc: 'A fast forest archer with pointed ears, light armor, and a moonwood bow built for clean kiting and precise ranged pressure.',
+      stats: { strength: 10, agility: 20, arcane: 11, vitality: 9 },
+      color: 'text-emerald-400 border-emerald-950 bg-emerald-950/20',
+      weapon: 'Moonwood Bow (Precision Arrows)',
+      armor: 'Leafweave Mantle (Evasion Garb)',
+      sigil: 'ELF',
+      hp: 136,
+      mp: 83,
+      weaponItem: {
+        name: 'Moonwood Bow',
+        rarity: 'Rare' as const,
+        stats: '+17 Damage, +7 Agility, +2 Arcane',
+        lore: 'A living bow grown around a silver string. Its arrows remember the target.'
+      },
+      armorItem: {
+        name: 'Leafweave Mantle',
+        rarity: 'Rare' as const,
+        stats: '+3 Defense, +7 Agility, +10 HP',
+        lore: 'Flexible forest armor stitched from moonlit leaves and spider-silk.'
+      }
+    },
+    OrcBerserker: {
+      name: 'Orc Berserker',
+      title: 'Iron-tusk breaker',
+      desc: 'A heavy melee bruiser with tusks, war paint, and a brutal axe. Slow, loud, and excellent at ending arguments.',
+      stats: { strength: 21, agility: 7, arcane: 5, vitality: 17 },
+      color: 'text-lime-400 border-lime-950 bg-lime-950/20',
+      weapon: 'Skullsplitter Axe (Brutal Cleave)',
+      armor: 'Warhide Plate (Thick Hide)',
+      sigil: 'ORC',
+      hp: 188,
+      mp: 65,
+      weaponItem: {
+        name: 'Skullsplitter Axe',
+        rarity: 'Rare' as const,
+        stats: '+27 Damage, +8 Strength, -1 Agility',
+        lore: 'A chipped crescent axe used by three generations of pit champions.'
+      },
+      armorItem: {
+        name: 'Warhide Plate',
+        rarity: 'Rare' as const,
+        stats: '+7 Defense, +4 Strength, +24 HP',
+        lore: 'Layered hide, iron plates, and enough scars to count as extra armor.'
+      }
+    },
+    ArcaneSorceress: {
+      name: 'Arcane Sorceress',
+      title: 'Violet star witch',
+      desc: 'A female-coded spellblade caster with flowing hair, bright robes, and high mana for aggressive fireball chains.',
+      stats: { strength: 8, agility: 12, arcane: 21, vitality: 9 },
+      color: 'text-purple-400 border-purple-950 bg-purple-950/20',
+      weapon: 'Astral Staff (Spell Focus)',
+      armor: 'Starfall Gown (Arcane Ward)',
+      sigil: 'ARC',
+      hp: 136,
+      mp: 113,
+      weaponItem: {
+        name: 'Astral Staff',
+        rarity: 'Epic' as const,
+        stats: '+14 Damage, +8 Arcane, +10 Mana',
+        lore: 'A midnight staff capped with a shard of something that still thinks it is a star.'
+      },
+      armorItem: {
+        name: 'Starfall Gown',
+        rarity: 'Epic' as const,
+        stats: '+3 Defense, +7 Arcane, +12 HP',
+        lore: 'A battle dress embroidered with protective constellations.'
+      }
+    },
   };
 
   const handleClassSelect = (cls: PlayerClass) => {
@@ -140,6 +218,30 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
       setEyeColor('#ea580c');
       setCapeColor('#78350f');
       setStartingPerk('Draconic Scales');
+    } else if (cls === 'ElvenRanger') {
+      setGender('Female');
+      setHairStyle('Forest Antlers');
+      setHairColor('#e2e8f0');
+      setSkinColor('#f5f5f4');
+      setEyeColor('#38bdf8');
+      setCapeColor('#064e3b');
+      setStartingPerk('Fleet Foot');
+    } else if (cls === 'OrcBerserker') {
+      setGender('Male');
+      setHairStyle('Iron Warhawk');
+      setHairColor('#18181b');
+      setSkinColor('#86a35f');
+      setEyeColor('#fbbf24');
+      setCapeColor('#3f6212');
+      setStartingPerk('Blood Pact');
+    } else if (cls === 'ArcaneSorceress') {
+      setGender('Female');
+      setHairStyle('Starfall Braids');
+      setHairColor('#a855f7');
+      setSkinColor('#f5f5f4');
+      setEyeColor('#a855f7');
+      setCapeColor('#4c1d95');
+      setStartingPerk('Arcane Spark');
     }
 
     if (!startedBgm) {
@@ -197,7 +299,31 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
       eyeColor,
       capeColor,
       startingPerk
-    });
+    }, selectedKingdom);
+  };
+
+  const getClassSigil = (cls: PlayerClass) => {
+    const sigils: Record<PlayerClass, string> = {
+      VampireHunter: 'VH',
+      RenegadeVampire: 'RV',
+      DraconicKnight: 'DK',
+      ElvenRanger: 'ER',
+      OrcBerserker: 'OB',
+      ArcaneSorceress: 'AS',
+    };
+    return sigils[cls];
+  };
+
+  const getWeaponShortName = (cls: PlayerClass) => {
+    const weapons: Record<PlayerClass, string> = {
+      VampireHunter: 'Slayer Whip',
+      RenegadeVampire: 'Crimson Scythe',
+      DraconicKnight: 'Greatsword',
+      ElvenRanger: 'Moonwood Bow',
+      OrcBerserker: 'War Axe',
+      ArcaneSorceress: 'Astral Staff',
+    };
+    return weapons[cls];
   };
 
   const selectTab = (tab: typeof activeTab) => {
@@ -319,22 +445,56 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
 
         {/* Content Container */}
         <div className="z-10 flex flex-col items-center max-w-xl px-6 text-center">
-          {/* Animated crest */}
-          <div className="w-20 h-20 rounded-full border-2 border-red-700 bg-red-950/50 flex items-center justify-center text-4xl text-red-500 animate-pulse shadow-[0_0_25px_rgba(239,68,68,0.4)] mb-8">
-            🐉
+          
+          {/* New Logo matching intro */}
+          <div className="flex flex-row items-center justify-center border-[3px] border-zinc-200 p-1.5 bg-black/80 backdrop-blur-sm mb-8 scale-75 md:scale-90 shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+            {/* Left Box (THE A) */}
+            <div className="relative flex items-center justify-center border-r-[3px] border-zinc-200 p-3 pr-5 bg-zinc-200 text-black h-36 w-32 overflow-hidden">
+              <div className="absolute top-1.5 left-1.5 text-sm font-serif tracking-widest leading-none z-10 font-bold" style={{ fontFamily: "'Cinzel Decorative', serif" }}>
+                THE
+              </div>
+              <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg width=\\'100\\' height=\\'100\\' xmlns=\\'http://www.w3.org/2000/svg\\'%3E%3Cpath d=\\'M20,50 Q40,20 60,50 T100,50\\' stroke=\\'black\\' fill=\\'none\\' stroke-width=\\'2\\'/%3E%3C/svg%3E')", backgroundSize: "cover" }} />
+              <span className="text-[100px] leading-none text-black z-0 mt-3" style={{ fontFamily: "'UnifrakturMaguntia', cursive" }}>
+                A
+              </span>
+            </div>
+
+            {/* Right text (ge of the Succubus.) */}
+            <div className="flex flex-col justify-center items-start pl-4 pr-3 h-36 bg-black">
+              <div className="text-[48px] leading-[0.8] text-zinc-200" style={{ fontFamily: "'UnifrakturMaguntia', cursive" }}>
+                ge of the
+              </div>
+              <div className="text-[58px] leading-[0.9] text-zinc-200" style={{ fontFamily: "'UnifrakturMaguntia', cursive" }}>
+                Succubus.
+              </div>
+            </div>
           </div>
 
-          <span className="text-[10px] font-mono tracking-[0.3em] text-red-500 font-bold uppercase mb-2">
-            A Studio-Grade Dark Fantasy Experience
-          </span>
-          
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-[0.15em] font-serif text-zinc-100 uppercase select-none drop-shadow-[0_2px_15px_rgba(220,38,38,0.3)] mb-4">
-            Draconic Bloodline
-          </h1>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="rounded-full border border-zinc-400 bg-zinc-800/40 px-3 py-1 text-[9px] font-mono uppercase tracking-[0.25em] text-zinc-300">
+              Story-Driven RPG
+            </span>
+            <span className="rounded-full border border-zinc-800 bg-zinc-950/50 px-3 py-1 text-[9px] font-mono uppercase tracking-[0.25em] text-zinc-400">
+              Polished Combat
+            </span>
+          </div>
 
-          <p className="text-zinc-400 font-serif text-xs leading-relaxed max-w-md italic mb-12">
-            "A dark fantasy Action RPG of blood and embers. Steel your whip, channel your ancient draconic powers, and survive the unholy Cathedral of Ash."
+          <p className="text-zinc-400 font-serif text-xs leading-relaxed max-w-md italic mb-6">
+            "The ancient cathedral lies in ruins, corrupted by a forbidden pact. The Age of the Succubus has begun, and only your lineage can break the curse."
           </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full max-w-lg mb-8 text-left">
+            {[
+              ['Narrative First', 'Discover the truth behind the demonic war'],
+              ['Responsive Combat', 'Fast, readable action with clear feedback'],
+              ['Immersive UI', 'Elegant menus, readable HUD, and strong pacing']
+            ].map(([title, desc]) => (
+              <div key={title} className="rounded-xl border border-zinc-900/80 bg-zinc-950/70 p-3">
+                <div className="text-[9px] font-mono uppercase tracking-[0.25em] text-zinc-300 mb-1">{title}</div>
+                <div className="text-[10px] text-zinc-500 leading-relaxed">{desc}</div>
+              </div>
+            ))}
+          </div>
 
           {/* Progress Bar & Buttons */}
           <div className="w-full max-w-sm flex flex-col items-center gap-4">
@@ -342,11 +502,11 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
               <div className="w-full">
                 <div className="flex justify-between items-center text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2">
                   <span>{loadingStatusText}</span>
-                  <span className="text-red-500 font-bold">{loadingProgress}%</span>
+                  <span className="text-zinc-300 font-bold">{loadingProgress}%</span>
                 </div>
-                <div className="w-full h-1.5 bg-zinc-950 border border-zinc-900 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-zinc-950 border border-zinc-800 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-red-800 to-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)] transition-all duration-150"
+                    className="h-full bg-gradient-to-r from-zinc-600 to-zinc-300 shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all duration-150"
                     style={{ width: `${loadingProgress}%` }}
                   />
                 </div>
@@ -359,7 +519,8 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
                   setStartedBgm(true);
                   setIsEntryScreen(false);
                 }}
-                className="w-full py-4 px-8 bg-gradient-to-r from-red-950 via-red-900 to-red-950 hover:from-red-900 hover:to-red-800 border border-red-700 text-red-200 text-xs font-mono font-bold uppercase tracking-[0.25em] rounded-xl shadow-[0_0_30px_rgba(220,38,38,0.3)] cursor-pointer hover:shadow-[0_0_40px_rgba(220,38,38,0.55)] transition-all hover:scale-[1.02] active:scale-95 animate-pulse"
+                className="w-full py-4 px-8 bg-zinc-900 hover:bg-zinc-800 border-2 border-zinc-500 hover:border-zinc-300 text-zinc-200 text-sm font-serif uppercase tracking-[0.25em] rounded-sm shadow-[0_0_20px_rgba(255,255,255,0.1)] cursor-pointer hover:shadow-[0_0_30px_rgba(255,255,255,0.25)] transition-all hover:scale-[1.02] active:scale-95 animate-pulse"
+                style={{ fontFamily: "'Cinzel Decorative', serif" }}
               >
                 Enter the Night ☩
               </button>
@@ -381,7 +542,7 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
       {/* Cinematic animated background wrapper */}
       <div className="absolute inset-0 z-0">
         <img 
-          src="/src/assets/images/gothic_main_banner_1783099342203.jpg" 
+          src={mainBannerImg} 
           alt="Ancient Cathedral Under Blood Moon" 
           className="w-full h-full object-cover opacity-25 filter brightness-[0.4] blur-sm scale-105"
           referrerPolicy="no-referrer"
@@ -447,18 +608,53 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
           </div>
 
           {/* Quick-start Descent Button */}
-          <button
-            onClick={handleStart}
-            className="w-full mt-3 py-3 bg-gradient-to-r from-red-950 via-red-600 to-red-950 hover:from-red-900 hover:to-red-500 text-white font-mono text-[10px] font-bold tracking-[0.2em] rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(220,38,38,0.25)] border border-red-700/50 hover:scale-[1.02] active:scale-[0.98] animate-pulse flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            ⚔️ BEGIN ADVENTURE ⚔️
-          </button>
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-zinc-900/80 bg-zinc-950/70 p-3 text-[10px] font-mono text-zinc-300">
+              <div className="text-[9px] uppercase tracking-[0.25em] text-zinc-500 mb-2">CHOOSE A KINGDOM TO START FROM</div>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 1, label: 'Cathedral', sigil: '🏰' },
+                  { id: 2, label: 'Swamp', sigil: '🕯️' },
+                  { id: 3, label: 'Storm', sigil: '⚡' },
+                  { id: 4, label: 'Forge', sigil: '🔥' },
+                  { id: 5, label: 'Volcano', sigil: '⛰️' },
+                ].map(k => (
+                  <button
+                    key={k.id}
+                    onClick={() => { playSound('hit'); setSelectedKingdom(k.id); }}
+                    className={`rounded-lg border px-2 py-2 text-[10px] font-bold uppercase tracking-[0.18em] transition-colors ${
+                      selectedKingdom === k.id ? 'bg-red-950/90 border-red-700 text-red-300 shadow-[0_0_10px_rgba(239,68,68,0.2)]' : 'bg-zinc-900/70 border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200'
+                    }`}
+                  >
+                    <span className="block text-[14px] leading-none">{k.sigil}</span>
+                    <span className="block mt-1">{k.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={handleStart}
+              className="w-full py-3 bg-gradient-to-r from-red-950 via-red-600 to-red-950 hover:from-red-900 hover:to-red-500 text-white font-mono text-[10px] font-bold tracking-[0.2em] rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(220,38,38,0.25)] border border-red-700/50 hover:scale-[1.02] active:scale-[0.98] animate-pulse flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              ⚔️ BEGIN ADVENTURE ⚔️
+            </button>
+
+            {hasSave && onContinueGame && (
+              <button
+                onClick={() => { playSound('levelup'); onContinueGame(); }}
+                className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 text-[10px] font-bold uppercase tracking-[0.2em] rounded-xl transition-all duration-200"
+              >
+                CONTINUE FROM LAST SAVE
+              </button>
+            )}
+          </div>
 
           {/* Mini Character Card (Bottom Left of Sidebar) */}
           <div className="mt-5 border-t border-zinc-900 pt-4 flex flex-col gap-2 bg-zinc-950/40 p-2.5 rounded-xl border border-zinc-900/60">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded bg-red-950 border border-red-900 flex items-center justify-center text-lg shadow">
-                {selectedClass === 'VampireHunter' ? '🛡️' : selectedClass === 'RenegadeVampire' ? '🩸' : '🔥'}
+                {getClassSigil(selectedClass)}
               </div>
               <div className="flex-1 min-w-0">
                 <span className="text-[11px] font-bold text-zinc-200 block truncate">
@@ -512,14 +708,33 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
           {/* TAB 1: CHAMPIONS (DEFAULT OVERVIEW) */}
           {activeTab === 'champions' && (
             <div className="flex-1 flex flex-col justify-between h-full gap-5">
-              <div className="flex justify-between items-center">
-                <div className="flex flex-col gap-1">
-                  <span className="text-yellow-500 font-bold text-[10px] uppercase tracking-widest font-mono">
-                    Forge Your Dark Destiny
-                  </span>
-                  <h2 className="text-xl font-bold tracking-wider font-serif text-zinc-100 flex items-center gap-2">
-                    CHARACTER CREATION & CUSTOMIZATION ⚔️
-                  </h2>
+              <div className="flex flex-col gap-3">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-yellow-500 font-bold text-[10px] uppercase tracking-widest font-mono">
+                      Forge Your Dark Destiny
+                    </span>
+                    <h2 className="text-xl font-bold tracking-wider font-serif text-zinc-100 flex items-center gap-2">
+                      CHARACTER CREATION & CUSTOMIZATION ⚔️
+                    </h2>
+                  </div>
+                  <div className="rounded-full border border-red-800/70 bg-red-950/30 px-3 py-1 text-[9px] font-mono uppercase tracking-[0.25em] text-red-300">
+                    Story Focus: Bloodline Reveal
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-900/80 bg-gradient-to-br from-red-950/20 via-zinc-950/70 to-zinc-900/60 p-4">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <div className="text-[9px] font-mono uppercase tracking-[0.25em] text-red-400">Mission Brief</div>
+                      <div className="text-sm font-serif text-zinc-100">The Blood Moon is rising. Every choice you make will shape what survives.</div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-[10px] font-mono text-zinc-400">
+                      <span className="rounded-full border border-zinc-800 px-2.5 py-1">Truth & Memory</span>
+                      <span className="rounded-full border border-zinc-800 px-2.5 py-1">Dragon Blood</span>
+                      <span className="rounded-full border border-zinc-800 px-2.5 py-1">Moral Choice</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -623,6 +838,9 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
                             'Gothic Braids',
                             'Draconic Mane',
                             'Renegade Locks',
+                            'Forest Antlers',
+                            'Iron Warhawk',
+                            'Starfall Braids',
                             'Messy Rogue'
                           ].map(style => {
                             const isSel = hairStyle === style;
@@ -690,6 +908,7 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
                             { name: 'Alabaster', value: '#f5f5f4' },
                             { name: 'Ashen', value: '#cbd5e1' },
                             { name: 'Vampiric', value: '#94a3b8' },
+                            { name: 'Orcish', value: '#86a35f' },
                             { name: 'Molten', value: '#fed7aa' }
                           ].map(col => {
                             const isSel = skinColor === col.value;
@@ -752,6 +971,9 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
                         {[
                           { name: 'Crimson Scarlet', value: '#991b1b' },
                           { name: 'Royal Navy', value: '#1e3a8a' },
+                          { name: 'Forest Green', value: '#064e3b' },
+                          { name: 'Warhide Green', value: '#3f6212' },
+                          { name: 'Violet Night', value: '#4c1d95' },
                           { name: 'Gothic Charcoal', value: '#1c1917' },
                           { name: 'Molten Bronze', value: '#78350f' },
                           { name: 'Bright Red', value: '#dc2626' }
@@ -807,7 +1029,7 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
                     </div>
                     <div className="flex justify-between mb-0.5 text-zinc-400">
                       <span>Weapon:</span>
-                      <span className="text-zinc-200 text-[8px]">{classesConfig[selectedClass].name === 'Draconic Knight' ? 'Greatsword' : classesConfig[selectedClass].name === 'Renegade Vampire' ? 'Crimson Scythe' : 'Slayer Whip'}</span>
+                      <span className="text-zinc-200 text-[8px]">{getWeaponShortName(selectedClass)}</span>
                     </div>
                     <div className="flex justify-between mb-1 text-zinc-400">
                       <span>Perk boon:</span>
@@ -870,7 +1092,7 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
                     <span>🧪</span> <span className="text-zinc-400">Mana Potion</span> <span className="text-purple-400">x8</span>
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded">
-                    <span>⚔️</span> <span className="text-zinc-400">{classesConfig[selectedClass].name === 'Draconic Knight' ? 'Greatsword' : classesConfig[selectedClass].name === 'Renegade Vampire' ? 'Scythe' : 'Chain Whip'}</span> <span className="text-amber-500">Equip</span>
+                    <span>WPN</span> <span className="text-zinc-400">{getWeaponShortName(selectedClass)}</span> <span className="text-amber-500">Equip</span>
                   </div>
                 </div>
               </div>
@@ -1281,7 +1503,7 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
             <div className="flex-1 flex flex-col justify-between gap-4 animate-fade-in">
               <div className="flex flex-col gap-1">
                 <span className="text-zinc-500 font-bold text-[10px] uppercase tracking-widest font-mono">
-                  Ancient Weathered Parchment Layout
+                  Ancient Weathered Cartographic Layout
                 </span>
                 <h2 className="text-xl font-bold tracking-wider font-serif text-zinc-100 uppercase">
                   Map of the Cursed Kingdoms 🗺️
@@ -1291,9 +1513,9 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
               {/* The Map graphic area */}
               <div className="flex-1 rounded-xl border border-amber-950/40 overflow-hidden relative bg-zinc-950 min-h-[230px]">
                 <img 
-                  src="/src/assets/images/gothic_parchment_map_1783099374707.jpg" 
-                  alt="Ancient Cursed Parchment Map" 
-                  className="absolute inset-0 w-full h-full object-cover opacity-55 hover:scale-105 transition-transform duration-1000 pointer-events-none"
+                  src={mapImg} 
+                  alt="Ancient Cursed World Map" 
+                  className="absolute inset-0 w-full h-full object-cover opacity-80 hover:scale-105 transition-transform duration-1000 pointer-events-none"
                   referrerPolicy="no-referrer"
                 />
                 
@@ -1430,7 +1652,7 @@ export default function MainMenu({ onStartGame, onOpenSettings }: MainMenuProps)
             {/* Subtle layout image for NEXT DESTINATION */}
             <div className="absolute inset-0 z-0">
               <img 
-                src="/src/assets/images/gothic_main_banner_1783099342203.jpg" 
+                src={mainBannerImg} 
                 alt="Crypts background" 
                 className="w-full h-full object-cover opacity-15 filter brightness-50"
                 referrerPolicy="no-referrer"

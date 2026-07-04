@@ -2,16 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { PlayerClass, PlayerState, PlayerCustomization, LevelData, Item, ItemType, GameSettings } from './types';
 import { playSound, startBGM, stopBGM, setVolume } from './components/SoundEffects';
 import { generateLevel } from './utils/procedural';
+import { GameManager } from './managers/GameManager';
+import { SaveManager } from './managers/SaveManager';
 import MainMenu from './components/MainMenu';
 import DungeonCanvas from './components/DungeonCanvas';
 import CharacterSheet from './components/CharacterSheet';
 import SettingsModal from './components/SettingsModal';
 import TutorialScreen from './components/TutorialScreen';
-import { Heart, Zap, Coins, Shield, Trophy, RefreshCw, Volume2, Sparkles, AlertTriangle, Settings } from 'lucide-react';
+import { Heart, Zap, Coins, Shield, Trophy, RefreshCw, Volume2, Sparkles, AlertTriangle, Settings, Book } from 'lucide-react';
+import { BestiarySystem } from './systems/BestiarySystem';
+import { CodexOverlay } from './components/CodexOverlay';
+
+import mainBannerImg from './assets/images/gothic_main_banner_1783099342203.jpg';
+import introVideo1 from '../Intro.mp4';
+import introVideo2 from '../dragonic_bloodlines.mp4';
 
 export default function App() {
-  const [screen, setScreen] = useState<'menu' | 'intro' | 'playing' | 'gameover' | 'victory' | 'loading'>('menu');
+  const [screen, setScreen] = useState<'intro_splash' | 'video_intro1' | 'video_intro2' | 'menu' | 'intro' | 'playing' | 'gameover' | 'victory' | 'loading'>('intro_splash');
   const [playerClass, setPlayerClass] = useState<PlayerClass>('VampireHunter');
+
+  useEffect(() => {
+    if (screen === 'intro_splash') {
+      const timer = setTimeout(() => {
+        setScreen('video_intro1');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [screen]);
   
   // Primary states
   const [player, setPlayer] = useState<PlayerState>({
@@ -27,7 +44,7 @@ export default function App() {
     stats: { strength: 10, agility: 10, arcane: 10, vitality: 10 },
     statPoints: 0,
     inventory: [],
-    equipped: { Weapon: null, Armor: null, Ring: null, Relic: null },
+    equipped: { Weapon: null, Armor: null, Ring: null, Relic: null, Crest: null, Scroll: null, Pet: null },
     customization: {
       gender: 'Male',
       hairStyle: 'Slayer Hood',
@@ -39,6 +56,7 @@ export default function App() {
     },
     activeBoons: [],
     levelUpBoonsToSelect: [],
+    activePet: null,
     x: 0,
     y: 0,
     size: 10,
@@ -52,7 +70,12 @@ export default function App() {
   });
 
   const [level, setLevel] = useState<LevelData | null>(null);
+  const [currentKingdom, setCurrentKingdom] = useState(1);
+  const [currentFloor, setCurrentFloor] = useState(1);
+  const [unlockedKingdoms, setUnlockedKingdoms] = useState([1]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [hasSaveFile, setHasSaveFile] = useState<boolean>(SaveManager.hasSaveFile());
   const [muteSound, setMuteSound] = useState(false);
   
   // Custom global RPG settings
@@ -65,6 +88,8 @@ export default function App() {
     showOnScreenButtons: true,
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCodexOpen, setIsCodexOpen] = useState(false);
+  const bestiaryRef = React.useRef<BestiarySystem>(new BestiarySystem());
   const [loadingLore, setLoadingLore] = useState("");
 
   const loadingLores = [
@@ -83,8 +108,12 @@ export default function App() {
   };
 
   // Initialize Player State based on selected class and customization options
-  const handleStartGame = (selectedClass: PlayerClass, custom?: PlayerCustomization) => {
+  const handleStartGame = (selectedClass: PlayerClass, custom?: PlayerCustomization, selectedKingdom: number = 1) => {
     setPlayerClass(selectedClass);
+    setCurrentKingdom(selectedKingdom);
+    setCurrentFloor(1);
+    setUnlockedKingdoms([selectedKingdom]);
+    setIsPaused(false);
     
     // Class-specific base stats
     let stats = { strength: 12, agility: 16, arcane: 8, vitality: 14 }; // Hunter
@@ -92,16 +121,32 @@ export default function App() {
       stats = { strength: 14, agility: 12, arcane: 15, vitality: 9 };
     } else if (selectedClass === 'DraconicKnight') {
       stats = { strength: 18, agility: 8, arcane: 10, vitality: 14 };
+    } else if (selectedClass === 'ElvenRanger') {
+      stats = { strength: 10, agility: 20, arcane: 11, vitality: 9 };
+    } else if (selectedClass === 'OrcBerserker') {
+      stats = { strength: 21, agility: 7, arcane: 5, vitality: 17 };
+    } else if (selectedClass === 'ArcaneSorceress') {
+      stats = { strength: 8, agility: 12, arcane: 21, vitality: 9 };
     }
 
     const customization: PlayerCustomization = custom || {
-      gender: 'Male',
-      hairStyle: selectedClass === 'VampireHunter' ? 'Slayer Hood' : selectedClass === 'RenegadeVampire' ? 'Renegade Locks' : 'Knight Helmet',
-      hairColor: selectedClass === 'VampireHunter' ? '#18181b' : selectedClass === 'RenegadeVampire' ? '#ef4444' : '#fbbf24',
-      skinColor: selectedClass === 'RenegadeVampire' ? '#e4e4e7' : '#f5f5f4',
-      eyeColor: selectedClass === 'RenegadeVampire' ? '#ef4444' : '#fbbf24',
-      capeColor: selectedClass === 'VampireHunter' ? '#1e3a8a' : selectedClass === 'RenegadeVampire' ? '#991b1b' : '#78350f',
-      startingPerk: 'Blood Pact'
+      gender: selectedClass === 'ElvenRanger' || selectedClass === 'ArcaneSorceress' ? 'Female' : 'Male',
+      hairStyle: selectedClass === 'VampireHunter' ? 'Slayer Hood'
+        : selectedClass === 'RenegadeVampire' ? 'Renegade Locks'
+        : selectedClass === 'DraconicKnight' ? 'Knight Helmet'
+        : selectedClass === 'ElvenRanger' ? 'Forest Antlers'
+        : selectedClass === 'OrcBerserker' ? 'Iron Warhawk'
+        : 'Starfall Braids',
+      hairColor: selectedClass === 'VampireHunter' ? '#18181b'
+        : selectedClass === 'RenegadeVampire' ? '#ef4444'
+        : selectedClass === 'DraconicKnight' ? '#fbbf24'
+        : selectedClass === 'ElvenRanger' ? '#e2e8f0'
+        : selectedClass === 'OrcBerserker' ? '#18181b'
+        : '#a855f7',
+      skinColor: selectedClass === 'RenegadeVampire' ? '#e4e4e7' : selectedClass === 'OrcBerserker' ? '#86a35f' : '#f5f5f4',
+      eyeColor: selectedClass === 'RenegadeVampire' ? '#ef4444' : selectedClass === 'DraconicKnight' ? '#ea580c' : selectedClass === 'ElvenRanger' ? '#38bdf8' : selectedClass === 'ArcaneSorceress' ? '#a855f7' : '#fbbf24',
+      capeColor: selectedClass === 'VampireHunter' ? '#1e3a8a' : selectedClass === 'RenegadeVampire' ? '#991b1b' : selectedClass === 'DraconicKnight' ? '#78350f' : selectedClass === 'ElvenRanger' ? '#064e3b' : selectedClass === 'OrcBerserker' ? '#3f6212' : '#4c1d95',
+      startingPerk: selectedClass === 'DraconicKnight' ? 'Draconic Scales' : selectedClass === 'ElvenRanger' ? 'Fleet Foot' : selectedClass === 'ArcaneSorceress' ? 'Arcane Spark' : 'Blood Pact'
     };
 
     let activeBoons: string[] = [];
@@ -177,6 +222,63 @@ export default function App() {
         stats: { defense: 6, strength: 2, arcane: 2, vitality: 20 },
         icon: 'mail'
       };
+    } else if (selectedClass === 'ElvenRanger') {
+      weapon = {
+        id: 'moonbow_start',
+        name: 'Moonwood Bow',
+        type: 'Weapon',
+        rarity: 'Rare',
+        description: 'A living bow grown around a silver string.',
+        stats: { damage: 17, agility: 7, arcane: 2 },
+        icon: 'bow'
+      };
+      armor = {
+        id: 'leafweave_start',
+        name: 'Leafweave Mantle',
+        type: 'Armor',
+        rarity: 'Rare',
+        description: 'Light forest armor that keeps every step quiet.',
+        stats: { defense: 3, agility: 7, vitality: 10 },
+        icon: 'leaf_mantle'
+      };
+    } else if (selectedClass === 'OrcBerserker') {
+      weapon = {
+        id: 'skullsplitter_start',
+        name: 'Skullsplitter Axe',
+        type: 'Weapon',
+        rarity: 'Rare',
+        description: 'A chipped crescent axe made for brutal close-range cleaves.',
+        stats: { damage: 27, strength: 8, agility: -1 },
+        icon: 'axe'
+      };
+      armor = {
+        id: 'warhide_start',
+        name: 'Warhide Plate',
+        type: 'Armor',
+        rarity: 'Rare',
+        description: 'Layered hide and iron plates built for fearless brawling.',
+        stats: { defense: 7, strength: 4, vitality: 24 },
+        icon: 'warhide'
+      };
+    } else if (selectedClass === 'ArcaneSorceress') {
+      weapon = {
+        id: 'astral_staff_start',
+        name: 'Astral Staff',
+        type: 'Weapon',
+        rarity: 'Epic',
+        description: 'A midnight staff capped with an unstable star shard.',
+        stats: { damage: 14, arcane: 8, manaRegen: 1 },
+        icon: 'staff'
+      };
+      armor = {
+        id: 'starfall_start',
+        name: 'Starfall Gown',
+        type: 'Armor',
+        rarity: 'Epic',
+        description: 'A battle dress embroidered with protective constellations.',
+        stats: { defense: 3, arcane: 7, vitality: 12 },
+        icon: 'starfall_gown'
+      };
     }
 
     // Derived Max HP / Mana
@@ -197,10 +299,11 @@ export default function App() {
       stats,
       statPoints: 0,
       inventory: [],
-      equipped: { Weapon: weapon, Armor: armor, Ring: null, Relic: null },
+      equipped: { Weapon: weapon, Armor: armor, Ring: null, Relic: null, Crest: null, Scroll: null, Pet: null },
       customization,
       activeBoons,
       levelUpBoonsToSelect: [],
+      activePet: null,
       x: 0,
       y: 0,
       size: 10,
@@ -217,14 +320,41 @@ export default function App() {
     setScreen('intro');
   };
 
+  const handleContinueGame = () => {
+    const saved = SaveManager.loadGame();
+    if (!saved) return;
+
+    const restoredKingdom = saved.currentKingdom || 1;
+    const restoredFloor = saved.currentFloor || 1;
+    const nextLevel = GameManager.generateFloor(restoredKingdom, restoredFloor);
+
+    setPlayer({
+      ...saved.playerState,
+      x: nextLevel.playerSpawn.x * 32 + 16,
+      y: nextLevel.playerSpawn.y * 32 + 16,
+    });
+    setCurrentKingdom(restoredKingdom);
+    setCurrentFloor(restoredFloor);
+    setUnlockedKingdoms(saved.unlockedKingdoms?.length ? saved.unlockedKingdoms : [restoredKingdom]);
+    setLevel(nextLevel);
+    setScreen('playing');
+    setIsPaused(false);
+    setHasSaveFile(true);
+    startBGM(restoredFloor >= 4 ? 'boss' : 'explore');
+  };
+
   const handleDescend = () => {
     playSound('stairs');
     pickRandomLore();
+    setIsPaused(false);
     setScreen('loading');
 
-    // Generate Level 1
+    // Save game progression initially
+    SaveManager.saveGame(player, currentKingdom, currentFloor, unlockedKingdoms, player.inventory, 0);
+
+    // Generate Level using GameManager
     setTimeout(() => {
-      const firstLevel = generateLevel(1);
+      const firstLevel = GameManager.generateFloor(currentKingdom, currentFloor);
       setLevel(firstLevel);
       
       // Update player coords to level spawn point
@@ -244,13 +374,38 @@ export default function App() {
     if (!level) return;
     playSound('stairs');
     setIsSheetOpen(false);
+    setIsPaused(false);
     pickRandomLore();
     setScreen('loading');
 
-    const nextFloorIndex = level.floorIndex + 1;
+    let nextFloorIndex = currentFloor + 1;
+    let nextKingdomIndex = currentKingdom;
+
+    if (nextFloorIndex > 5) {
+      nextFloorIndex = 1;
+      nextKingdomIndex++;
+      
+      // Unlock new kingdom
+      if (!unlockedKingdoms.includes(nextKingdomIndex)) {
+        setUnlockedKingdoms(prev => [...prev, nextKingdomIndex]);
+      }
+    }
+
+    if (nextKingdomIndex > 5) {
+      // Victory / True Ending sequence
+      setScreen('victory');
+      startBGM('victory');
+      return;
+    }
+
+    setCurrentFloor(nextFloorIndex);
+    setCurrentKingdom(nextKingdomIndex);
+    
+    // Auto-save progression
+    SaveManager.saveGame(player, nextKingdomIndex, nextFloorIndex, unlockedKingdoms, player.inventory, 0);
 
     setTimeout(() => {
-      const nextLevel = generateLevel(nextFloorIndex);
+      const nextLevel = GameManager.generateFloor(nextKingdomIndex, nextFloorIndex);
       setLevel(nextLevel);
 
       // Adjust player coordinates
@@ -263,7 +418,7 @@ export default function App() {
       setScreen('playing');
 
       // Change background theme music for boss levels
-      if (nextFloorIndex === 2 || nextFloorIndex >= 4) {
+      if (nextFloorIndex === 4 || nextFloorIndex === 5) {
         startBGM('boss');
       } else {
         startBGM('explore');
@@ -413,12 +568,23 @@ export default function App() {
     setVolume(nextMute ? 0 : 0.3);
   };
 
+  const handlePauseToggle = () => {
+    setIsPaused(prev => !prev);
+    playSound('hit');
+  };
+
+  const handleQuickSave = () => {
+    SaveManager.saveGame(player, currentKingdom, currentFloor, unlockedKingdoms, player.inventory, 0);
+    setHasSaveFile(true);
+    playSound('levelup');
+  };
+
   // Helper formatting names
   const getFloorTitle = (theme: LevelData['floorTheme']) => {
     switch (theme) {
-      case 'GothicCathedral': return 'Gothic Cathedral (Boss: Vampire Lord)';
-      case 'DragunMaw': return "Dragun's Maw Caverns";
-      case 'InnerSanctum': return 'Inner Sanctum (Boss: Grave Dragun)';
+      case 'ForsakenCathedral': return 'Gothic Cathedral (Boss: Vampire Lord)';
+      case 'DragonNest': return "Dragun's Maw Caverns";
+      case 'EternalThrone': return 'Inner Sanctum (Boss: Grave Dragun)';
       default: return 'Ancient Vampire Crypts';
     }
   };
@@ -426,11 +592,95 @@ export default function App() {
   return (
     <div className="w-full h-screen bg-black overflow-hidden flex flex-col justify-between font-sans select-none">
       
+      {/* 0. 3s Intro Logo Splash */}
+      {screen === 'intro_splash' && (
+        <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-50 relative">
+          <style>{`
+            @keyframes fadeInOut {
+              0% { opacity: 0; transform: scale(0.95); }
+              20% { opacity: 1; transform: scale(1); }
+              80% { opacity: 1; transform: scale(1); }
+              100% { opacity: 0; transform: scale(1.05); }
+            }
+            .animate-fade-in-out {
+              animation: fadeInOut 3s ease-in-out forwards;
+            }
+          `}</style>
+          
+          <div className="animate-fade-in-out flex flex-col items-center justify-center">
+            {/* The Logo Container */}
+            <div className="flex flex-row items-center justify-center border-4 border-black p-2 bg-zinc-50">
+              
+              {/* Left Box (THE A) */}
+              <div className="relative flex items-center justify-center border-r-4 border-black p-4 pr-6 bg-black text-white h-48 w-40 overflow-hidden">
+                <div className="absolute top-2 left-2 text-xl font-serif tracking-widest leading-none z-10" style={{ fontFamily: "'Cinzel Decorative', serif" }}>
+                  THE
+                </div>
+                {/* Ornamental background swirls */}
+                <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg width=\\'100\\' height=\\'100\\' xmlns=\\'http://www.w3.org/2000/svg\\'%3E%3Cpath d=\\'M20,50 Q40,20 60,50 T100,50\\' stroke=\\'white\\' fill=\\'none\\' stroke-width=\\'2\\'/%3E%3C/svg%3E')", backgroundSize: "cover" }} />
+                <span className="text-[140px] leading-none text-white z-0 mt-4" style={{ fontFamily: "'UnifrakturMaguntia', cursive" }}>
+                  A
+                </span>
+              </div>
+
+              {/* Right text (ge of the Succubus.) */}
+              <div className="flex flex-col justify-center items-start pl-6 pr-4 h-48">
+                <div className="text-[64px] leading-[0.8] text-black" style={{ fontFamily: "'UnifrakturMaguntia', cursive" }}>
+                  ge of the
+                </div>
+                <div className="text-[80px] leading-[0.9] text-black" style={{ fontFamily: "'UnifrakturMaguntia', cursive" }}>
+                  Succubus.
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 1. Main Title Menu screen */}
+      {screen === 'video_intro1' && (
+        <div className="w-full h-full bg-black flex items-center justify-center relative overflow-hidden">
+          <video
+            src={introVideo1}
+            autoPlay
+            muted
+            playsInline
+            onEnded={() => setScreen('video_intro2')}
+            className="w-full h-full object-cover"
+          />
+          <button
+            onClick={() => setScreen('menu')}
+            className="absolute top-4 right-4 px-4 py-2 rounded-md bg-black/60 text-white border border-white/20 hover:bg-black"
+          >
+            Skip Intro
+          </button>
+        </div>
+      )}
+      {screen === 'video_intro2' && (
+        <div className="w-full h-full bg-black flex items-center justify-center relative overflow-hidden">
+          <video
+            src={introVideo2}
+            autoPlay
+            muted
+            playsInline
+            onEnded={() => setScreen('menu')}
+            className="w-full h-full object-cover"
+          />
+          <button
+            onClick={() => setScreen('menu')}
+            className="absolute top-4 right-4 px-4 py-2 rounded-md bg-black/60 text-white border border-white/20 hover:bg-black"
+          >
+            Skip Intro
+          </button>
+        </div>
+      )}
       {screen === 'menu' && (
         <MainMenu 
           onStartGame={handleStartGame} 
           onOpenSettings={() => setIsSettingsOpen(true)}
+          onContinueGame={handleContinueGame}
+          hasSave={hasSaveFile}
         />
       )}
 
@@ -458,7 +708,7 @@ export default function App() {
 
           {/* Majestic Cathedral Background */}
           <img 
-            src="/src/assets/images/gothic_main_banner_1783099342203.jpg" 
+            src={mainBannerImg} 
             alt="Cursed Cathedral Under Blood Moon" 
             className="absolute inset-0 w-full h-full object-cover opacity-20 filter brightness-[0.3] blur-sm scale-105 pointer-events-none"
             referrerPolicy="no-referrer"
@@ -518,7 +768,7 @@ export default function App() {
             {/* Player Main HP/Mana/XP display */}
             <div className="flex-1 flex flex-col md:flex-row items-stretch gap-4 bg-zinc-950/90 border border-zinc-900/80 rounded-xl p-4 shadow-xl backdrop-blur-md">
               {/* Level indicator badge */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 rounded-2xl border border-zinc-900/80 bg-zinc-900/50 px-3 py-2">
                 <div className="w-12 h-12 rounded-full border border-red-500/30 bg-red-950/20 flex flex-col items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.05)]">
                   <span className="text-[10px] text-zinc-500 uppercase font-mono leading-none">LVL</span>
                   <span className="text-xl font-black text-red-500 leading-none mt-1">{player.level}</span>
@@ -534,7 +784,7 @@ export default function App() {
               {/* Progress Gauges */}
               <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* Health gauge */}
-                <div className="flex flex-col justify-between">
+                <div className="flex flex-col justify-between rounded-xl border border-red-950/40 bg-red-950/10 p-2.5">
                   <div className="flex justify-between text-[10px] font-mono mb-1 text-red-400">
                     <span className="flex items-center gap-1 font-bold">
                       <Heart className="w-3 h-3 text-red-500 fill-red-500" /> HP:
@@ -553,7 +803,7 @@ export default function App() {
                 </div>
 
                 {/* Mana gauge */}
-                <div className="flex flex-col justify-between">
+                <div className="flex flex-col justify-between rounded-xl border border-purple-950/40 bg-purple-950/10 p-2.5">
                   <div className="flex justify-between text-[10px] font-mono mb-1 text-purple-400">
                     <span className="flex items-center gap-1 font-bold">
                       <Zap className="w-3 h-3 text-purple-500 fill-purple-500" /> MP:
@@ -569,7 +819,7 @@ export default function App() {
                 </div>
 
                 {/* XP progression */}
-                <div className="flex flex-col justify-between">
+                <div className="flex flex-col justify-between rounded-xl border border-amber-950/40 bg-amber-950/10 p-2.5">
                   <div className="flex justify-between text-[10px] font-mono mb-1 text-amber-500">
                     <span className="flex items-center gap-1 font-bold">
                       <Sparkles className="w-3 h-3 text-amber-500 fill-amber-500" /> XP:
@@ -593,6 +843,21 @@ export default function App() {
                 <span className="text-xs font-bold text-red-500 block">Floor {level.floorIndex}</span>
                 <span className="text-[10px] text-zinc-300 italic block">{getFloorTitle(level.floorTheme)}</span>
               </div>
+
+              <button
+                onClick={handleQuickSave}
+                className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-mono transition"
+                title="Save game state"
+              >
+                SAVE
+              </button>
+              <button
+                onClick={handlePauseToggle}
+                className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-mono transition"
+                title={isPaused ? 'Resume game' : 'Pause game'}
+              >
+                {isPaused ? 'RESUME' : 'PAUSE'}
+              </button>
 
               {/* Character Sheet Button */}
               <button
@@ -626,11 +891,19 @@ export default function App() {
               >
                 <Settings className="w-4 h-4" />
               </button>
+
+              <button
+                onClick={() => { playSound('hit'); setIsCodexOpen(true); }}
+                className="p-3 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-red-400 border border-red-900/30 transition-colors"
+                title="Open Bestiary Codex"
+              >
+                <Book className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
           {/* MAIN INTERACTIVE CANVAS BODY */}
-          <div className="flex-1 flex items-stretch">
+          <div className="flex-1 flex items-stretch relative">
             <DungeonCanvas 
               player={player}
               level={level}
@@ -640,9 +913,18 @@ export default function App() {
               onGameOver={() => setScreen('gameover')}
               onVictory={() => setScreen('victory')}
               isSheetOpen={isSheetOpen}
-              gameActive={screen === 'playing'}
+              gameActive={screen === 'playing' && !isPaused}
               settings={settings}
+              onEnemyKilled={(id) => bestiaryRef.current.registerKill(id)}
             />
+
+            {isCodexOpen && (
+              <CodexOverlay 
+                bestiary={bestiaryRef.current}
+                onClose={() => setIsCodexOpen(false)}
+                playSound={playSound}
+              />
+            )}
           </div>
 
           {/* Bottom simple status bar */}
@@ -654,6 +936,34 @@ export default function App() {
           </div>
 
           {/* CHARACTER INVENTORY OVERLAY */}
+          {isPaused && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+              <div className="w-full max-w-md rounded-3xl border border-red-900/60 bg-zinc-950/95 p-6 text-center shadow-2xl">
+                <h2 className="text-2xl font-bold text-red-400 uppercase tracking-[0.3em] mb-4">PAUSED</h2>
+                <p className="text-sm text-zinc-300 mb-6">The night stills. Use Resume to continue your descent into the cursed kingdoms.</p>
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={handlePauseToggle}
+                    className="w-full rounded-xl bg-red-600 hover:bg-red-500 text-white py-3 text-sm font-bold transition"
+                  >
+                    Resume Adventure
+                  </button>
+                  <button
+                    onClick={handleQuickSave}
+                    className="w-full rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 py-3 text-sm font-bold transition"
+                  >
+                    Save Progress
+                  </button>
+                  <button
+                    onClick={() => setScreen('menu')}
+                    className="w-full rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 py-3 text-sm font-bold transition"
+                  >
+                    Return to Menu
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {isSheetOpen && (
             <CharacterSheet 
               player={player}
