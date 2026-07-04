@@ -3781,6 +3781,16 @@ export default function DungeonCanvas({
         </div>
       )}
 
+      {/* DEBUG OVERLAY */}
+      <div className="absolute top-20 right-4 z-50 bg-black/80 text-green-400 p-2 font-mono text-xs pointer-events-none whitespace-pre flex flex-col gap-1 border border-green-800">
+        <div>DEBUG INFO:</div>
+        <div>Player: {Math.floor(player.x)}, {Math.floor(player.y)}</div>
+        <div>Camera: {Math.floor(cameraRef.current.x)}, {Math.floor(cameraRef.current.y)}</div>
+        <div>Dims: {dimensions.width}x{dimensions.height}</div>
+        <div>Frame: {gameFrame.current}</div>
+        <div>Level: {level.width}x{level.height}</div>
+      </div>
+
       <div className="relative flex-1 w-full h-full overflow-hidden">
         <canvas 
           ref={canvasRef} 
