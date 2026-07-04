@@ -2236,8 +2236,16 @@ export default function DungeonCanvas({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Fill canvas with a visible dark base color first (never pure black)
+    ctx.fillStyle = '#0d0d14';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
     // Apply scaling
     ctx.clearRect(0, 0, dimensions.width, dimensions.height);
+
+    // Fill again after clear so background is always visible
+    ctx.fillStyle = '#0d0d14';
+    ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
     // Camera values with screenshake
     let cx = cameraRef.current.x;
@@ -2276,8 +2284,8 @@ export default function DungeonCanvas({
         const screenY = y * 32 - cy;
 
         if (!tile.explored) {
-          // Draw Pitch Black fog of war
-          ctx.fillStyle = '#000000';
+          // Draw dark navy fog of war (NOT pure black, so we can see the canvas is rendering)
+          ctx.fillStyle = '#07070f';
           ctx.fillRect(screenX, screenY, 32, 32);
           continue;
         }
