@@ -4,6 +4,12 @@
  */
 
 import React, { useMemo } from "react";
+import {
+  CraftPixPanel,
+  CraftPixButton,
+  CraftPixGrid,
+  PIXEL_THEME,
+} from "./CraftPixUI";
 
 // Tile size in pixels
 export const TILE_SIZE = 32;
@@ -249,9 +255,10 @@ export const EnvironmentCanvas: React.FC<EnvironmentCanvasProps> = ({
       height={height * zoom}
       viewBox={`0 0 ${width} ${height}`}
       style={{
-        border: "2px solid #666",
-        backgroundColor: "#1a1a1a",
+        border: `3px solid ${PIXEL_THEME.gold}`,
+        backgroundColor: PIXEL_THEME.dark,
         imageRendering: "pixelated",
+        boxShadow: `inset 0 0 10px ${PIXEL_THEME.shadow}, 0 4px 8px ${PIXEL_THEME.shadow}`,
       }}
     >
       <defs>
@@ -301,79 +308,153 @@ export const EnvironmentBuilder: React.FC<EnvironmentBuilderProps> = ({
   };
 
   return (
-    <div style={{ padding: "16px", backgroundColor: "#2a2a2a", borderRadius: "4px" }}>
-      <h3 style={{ color: "#ffd700", marginTop: 0 }}>Environment Builder</h3>
+    <div>
+      <CraftPixPanel title="⚔️ DUNGEON ENVIRONMENT BUILDER" variant="dark">
+        <CraftPixGrid columns={2} gap={16}>
+          {/* Width Control */}
+          <div>
+            <label
+              style={{
+                color: PIXEL_THEME.light,
+                fontSize: "12px",
+                fontWeight: "bold",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                display: "block",
+                marginBottom: "8px",
+              }}
+            >
+              Width: <span style={{ color: PIXEL_THEME.gold }}>{config.width}</span>
+            </label>
+            <input
+              type="range"
+              min="8"
+              max="32"
+              value={config.width}
+              onChange={(e) => setConfig({ ...config, width: parseInt(e.target.value) })}
+              style={{
+                width: "100%",
+                cursor: "pointer",
+                accentColor: PIXEL_THEME.gold,
+              }}
+            />
+          </div>
 
-      <div style={{ marginBottom: "12px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-        <label style={{ color: "#ccc" }}>
-          Width: {config.width}
-          <input
-            type="range"
-            min="8"
-            max="32"
-            value={config.width}
-            onChange={(e) => setConfig({ ...config, width: parseInt(e.target.value) })}
-            style={{ marginLeft: "8px", width: "100px" }}
-          />
-        </label>
+          {/* Height Control */}
+          <div>
+            <label
+              style={{
+                color: PIXEL_THEME.light,
+                fontSize: "12px",
+                fontWeight: "bold",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                display: "block",
+                marginBottom: "8px",
+              }}
+            >
+              Height: <span style={{ color: PIXEL_THEME.gold }}>{config.height}</span>
+            </label>
+            <input
+              type="range"
+              min="6"
+              max="24"
+              value={config.height}
+              onChange={(e) => setConfig({ ...config, height: parseInt(e.target.value) })}
+              style={{
+                width: "100%",
+                cursor: "pointer",
+                accentColor: PIXEL_THEME.gold,
+              }}
+            />
+          </div>
 
-        <label style={{ color: "#ccc" }}>
-          Height: {config.height}
-          <input
-            type="range"
-            min="6"
-            max="24"
-            value={config.height}
-            onChange={(e) => setConfig({ ...config, height: parseInt(e.target.value) })}
-            style={{ marginLeft: "8px", width: "100px" }}
-          />
-        </label>
+          {/* Water Level Control */}
+          <div>
+            <label
+              style={{
+                color: PIXEL_THEME.light,
+                fontSize: "12px",
+                fontWeight: "bold",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                display: "block",
+                marginBottom: "8px",
+              }}
+            >
+              Water Level: <span style={{ color: PIXEL_THEME.blue }}>{(config.waterLevel! * 100).toFixed(0)}%</span>
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={(config.waterLevel! * 100).toFixed(0)}
+              onChange={(e) =>
+                setConfig({ ...config, waterLevel: parseInt(e.target.value) / 100 })
+              }
+              style={{
+                width: "100%",
+                cursor: "pointer",
+                accentColor: PIXEL_THEME.blue,
+              }}
+            />
+          </div>
 
-        <label style={{ color: "#ccc" }}>
-          Water Level: {(config.waterLevel! * 100).toFixed(0)}%
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={(config.waterLevel! * 100).toFixed(0)}
-            onChange={(e) =>
-              setConfig({ ...config, waterLevel: parseInt(e.target.value) / 100 })
-            }
-            style={{ marginLeft: "8px", width: "100px" }}
-          />
-        </label>
+          {/* Theme Selection */}
+          <div>
+            <label
+              style={{
+                color: PIXEL_THEME.light,
+                fontSize: "12px",
+                fontWeight: "bold",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                display: "block",
+                marginBottom: "8px",
+              }}
+            >
+              Theme
+            </label>
+            <select
+              value={config.theme}
+              onChange={(e) => setConfig({ ...config, theme: e.target.value as any })}
+              style={{
+                width: "100%",
+                padding: "8px",
+                backgroundColor: PIXEL_THEME.brown,
+                color: PIXEL_THEME.gold,
+                border: `2px solid ${PIXEL_THEME.gold}`,
+                fontWeight: "bold",
+                cursor: "pointer",
+                textTransform: "uppercase",
+                fontSize: "12px",
+              }}
+            >
+              <option value="dungeon">🏰 Dungeon</option>
+              <option value="ruins">🏛️ Ruins</option>
+              <option value="cursed">👹 Cursed</option>
+              <option value="undead">💀 Undead</option>
+            </select>
+          </div>
+        </CraftPixGrid>
 
-        <label style={{ color: "#ccc" }}>
-          Theme:
-          <select
-            value={config.theme}
-            onChange={(e) => setConfig({ ...config, theme: e.target.value as any })}
-            style={{ marginLeft: "8px" }}
-          >
-            <option value="dungeon">Dungeon</option>
-            <option value="ruins">Ruins</option>
-            <option value="cursed">Cursed</option>
-            <option value="undead">Undead</option>
-          </select>
-        </label>
-      </div>
+        <div style={{ marginTop: "16px" }}>
+          <CraftPixButton variant="primary" size="medium" onClick={handleRegenerate}>
+            🔄 Regenerate Map
+          </CraftPixButton>
+        </div>
+      </CraftPixPanel>
 
-      <button
-        onClick={handleRegenerate}
+      <div
         style={{
-          padding: "8px 16px",
-          backgroundColor: "#ffd700",
-          color: "#000",
-          border: "2px solid #8b6f47",
-          cursor: "pointer",
-          fontWeight: "bold",
-          borderRadius: "2px",
+          marginTop: "16px",
+          padding: "16px",
+          backgroundColor: PIXEL_THEME.dark,
+          borderRadius: "4px",
+          overflowX: "auto",
+          border: `2px solid ${PIXEL_THEME.gold}`,
         }}
       >
-        🔄 Regenerate
-      </button>
-
-      <div style={{ marginTop: "16px", overflowX: "auto" }}>
         <EnvironmentCanvas environment={environment} zoom={1.5} showGrid={true} />
       </div>
     </div>
