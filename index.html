@@ -9,9 +9,73 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- All fonts in single request with font-display=swap to prevent render-blocking -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;700&family=Cinzel:wght@600;800;900&family=Cinzel+Decorative:wght@400;700;900&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+    <style>
+      /* Inline splash screen - shows immediately before app bundle loads */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { 
+        width: 100vw; 
+        height: 100vh; 
+        background: #000; 
+        overflow: hidden; 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      #root {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .splash-screen {
+        text-align: center;
+        color: #888;
+        z-index: 9999;
+      }
+      .splash-screen h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: #d41f1f;
+        text-shadow: 0 0 10px rgba(212, 31, 31, 0.5);
+        animation: pulse 2s infinite;
+      }
+      .splash-screen p {
+        font-size: 1rem;
+        color: #666;
+        margin-bottom: 2rem;
+      }
+      .loading-bar {
+        width: 200px;
+        height: 4px;
+        background: #222;
+        border-radius: 2px;
+        overflow: hidden;
+        margin: 0 auto;
+      }
+      .loading-bar::after {
+        content: '';
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, #d41f1f, #ff6b6b);
+        animation: loading 2s infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 0.8; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.05); }
+      }
+      @keyframes loading {
+        0% { width: 0; }
+        100% { width: 100%; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="splash-screen">
+        <h1>⚔ DRAGONIC BLOODLINES ⚔</h1>
+        <p>Initializing dungeon...</p>
+        <div class="loading-bar"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

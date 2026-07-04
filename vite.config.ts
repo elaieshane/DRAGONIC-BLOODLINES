@@ -56,17 +56,36 @@ export default defineConfig(() => {
       // Optimize CSS and JS output for faster loading
       cssMinify: 'lightningcss',
       minify: 'terser',
-      // Configure code splitting to reduce initial bundle size
+      // Aggressive code splitting to reduce main bundle
       rollupOptions: {
         output: {
-          manualChunks: {
-            // Split vendor code into separate chunk for better caching
-            vendor: ['react', 'react-dom'],
+          manualChunks: (id) => {
+            // Split vendors into separate chunks for better caching
+            if (id.includes('node_modules')) {
+              if (id.includes('react')) {
+                return 'react-vendor';
+              }
+              if (id.includes('lucide')) {
+                return 'icons-vendor';
+              }
+              return 'common-vendor';
+            }
+            // Split game components by feature
+            if (id.includes('src/components')) {
+              return 'components';
+            }
+            if (id.includes('src/utils')) {
+              return 'utils';
+            }
           },
         },
       },
       // Reduce CSS inlining to allow better parallelization of font loading
       cssCodeSplit: true,
+      // Target modern browsers for smaller output
+      target: 'es2020',
+      // Optimize chunk sizes
+      chunkSizeWarningLimit: 1000,
     },
     server: {
       // Allow the dev server to serve files from the parent Bloodlines folder
