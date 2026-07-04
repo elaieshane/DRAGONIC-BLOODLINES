@@ -12,8 +12,11 @@ const craftpixPlugin = {
         const craftpixMatch = req.url.match(/^\/craftpix-net-[^/]+\//);
         if (craftpixMatch) {
           const filePath = path.join(__dirname, '..', req.url);
+          console.log(`[craftpix] Intercepted: ${req.url}`);
+          console.log(`[craftpix] Resolved to: ${filePath}`);
           try {
             if (fs.existsSync(filePath)) {
+              console.log(`[craftpix] File found, serving...`);
               const content = fs.readFileSync(filePath);
               const ext = path.extname(filePath).toLowerCase();
               const mimeTypes: Record<string, string> = {
@@ -27,8 +30,11 @@ const craftpixPlugin = {
               res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
               res.end(content);
               return;
+            } else {
+              console.log(`[craftpix] File NOT found at: ${filePath}`);
             }
           } catch (e) {
+            console.log(`[craftpix] Error: ${e}`);
             // Fallback to next middleware
           }
         }
