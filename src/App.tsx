@@ -599,7 +599,7 @@ export default function App() {
   };
 
   return (
-    <div className="w-full h-screen bg-black overflow-hidden flex flex-col justify-between font-sans select-none">
+    <main className="w-full h-screen bg-black overflow-hidden flex flex-col justify-between font-sans select-none">
       
       {/* 0. 3s Intro Logo Splash */}
       {screen === 'intro_splash' && (
@@ -889,6 +889,7 @@ export default function App() {
                 onClick={toggleSoundMute}
                 className="p-3 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border border-zinc-800 transition-colors"
                 title="Mute/Unmute BGM"
+                aria-label="Mute or unmute background music"
               >
                 {muteSound ? <Volume2 className="w-4 h-4 text-zinc-600" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
               </button>
@@ -897,6 +898,7 @@ export default function App() {
                 onClick={() => { playSound('hit'); setIsSettingsOpen(true); }}
                 className="p-3 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border border-zinc-800 transition-colors"
                 title="Open Configurations & Shaders"
+                aria-label="Open game settings and configurations"
               >
                 <Settings className="w-4 h-4" />
               </button>
@@ -905,6 +907,7 @@ export default function App() {
                 onClick={() => { playSound('hit'); setIsCodexOpen(true); }}
                 className="p-3 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-red-400 border border-red-900/30 transition-colors"
                 title="Open Bestiary Codex"
+                aria-label="Open bestiary and creature codex"
               >
                 <Book className="w-4 h-4" />
               </button>
@@ -913,6 +916,7 @@ export default function App() {
                 onClick={() => { playSound('hit'); setIsCraftPixOpen(!isCraftPixOpen); }}
                 className="p-3 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-yellow-500 border border-yellow-900/30 transition-colors"
                 title="CraftPix Assets & UI Kit"
+                aria-label="View CraftPix asset pack showcase"
               >
                 <Palette className="w-4 h-4" />
               </button>
@@ -1168,6 +1172,6 @@ export default function App() {
         </div>
       )}
 
-    </div>
+    </main>
   );
 }
