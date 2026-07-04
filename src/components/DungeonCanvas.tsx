@@ -157,19 +157,27 @@ const drawCraftPixEnvironment = (
 };
 
 const CHARACTER_SPRITE_URLS: Record<string, string> = {
+  // Dark Elf pack — has PNG/Dark_Elves/CharacterN_faceN.png
   playerVampireHunter: '/craftpix-net-636003-free-dark-elf-pixel-art-asset-pack/PNG/Dark_Elves/Character1_face1.png',
   playerRenegadeVampire: '/craftpix-net-636003-free-dark-elf-pixel-art-asset-pack/PNG/Dark_Elves/Character2_face1.png',
   playerDraconicKnight: '/craftpix-net-636003-free-dark-elf-pixel-art-asset-pack/PNG/Dark_Elves/Character3_face1.png',
   playerElvenRanger: '/craftpix-net-636003-free-dark-elf-pixel-art-asset-pack/PNG/Dark_Elves/Character4_face1.png',
-  playerOrcBerserker: '/craftpix-net-790760-free-halfling-characters-pixel-art/PNG/Halflings2/Idle.png',
+  // Halfling pack — has PNG/Halflings2/CharacterN_faceN.png (no Idle.png)
+  playerOrcBerserker: '/craftpix-net-790760-free-halfling-characters-pixel-art/PNG/Halflings2/Character1_face1.png',
+  // Gorgon pack — has Gorgon_2/Idle_2.png (no PNG/ prefix)
   playerArcaneSorceress: '/craftpix-net-280097-free-gorgon-pixel-art-character-sprite-sheets/Gorgon_2/Idle_2.png',
+  // Werewolf pack — has Black_Werewolf/Idle.png (no PNG/ prefix)
   enemyWerewolf: '/craftpix-net-248468-free-werewolf-sprite-sheets-pixel-art/Black_Werewolf/Idle.png',
-  enemyWerewolfKing: '/craftpix-net-248468-free-werewolf-sprite-sheets-pixel-art/Black_Werewolf/Run.png',
+  enemyWerewolfKing: '/craftpix-net-248468-free-werewolf-sprite-sheets-pixel-art/Red_Werewolf/Run.png',
+  // Skeleton pack — has Skeleton_Warrior/Idle.png (no PNG/ prefix)
   enemySkeleton: '/craftpix-net-957123-free-skeleton-pixel-art-sprite-sheets/Skeleton_Warrior/Idle.png',
-  enemyDemon: '/craftpix-net-492723-free-demon-characters-pixel-art/PNG/Demon_warriors/Idle.png',
-  enemyGorgon: '/craftpix-net-280097-free-gorgon-pixel-art-character-sprite-sheets/Gorgon_1/Idle.png',
+  // Demon pack — has PNG/Demon_warriors/CharacterN_faceN.png (no Idle.png)
+  enemyDemon: '/craftpix-net-492723-free-demon-characters-pixel-art/PNG/Demon_warriors/Character1_face1.png',
+  // Dark Elf pack — vampires use elf face sprites
   enemyVampireLord: '/craftpix-net-636003-free-dark-elf-pixel-art-asset-pack/PNG/Dark_Elves/Character5_face1.png',
-  enemyDragonCultist: '/craftpix-net-492723-free-demon-characters-pixel-art/PNG/Demon_warriors/Attack_1.png',
+  enemyDragonCultist: '/craftpix-net-492723-free-demon-characters-pixel-art/PNG/Demon_warriors/Character3_face1.png',
+  // Gorgon pack — no PNG/ prefix
+  enemyGorgon: '/craftpix-net-280097-free-gorgon-pixel-art-character-sprite-sheets/Gorgon_1/Idle.png',
 };
 
 const getEnemySpriteURL = (type: string, name: string, faction: Faction): string | null => {
