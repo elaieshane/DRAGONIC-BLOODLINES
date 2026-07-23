@@ -99,63 +99,6 @@ const getCraftPixTileColor = (type: string, theme: string): string => {
   return colors[theme]?.[type] || colors.dungeon[type] || '#000000';
 };
 
-const drawCraftPixEnvironment = (
-  ctx: CanvasRenderingContext2D,
-  environment: EnvironmentMap,
-  tileSize: number,
-  dimensions: { width: number; height: number },
-  cx: number,
-  cy: number,
-  environmentTextureCache: Record<string, HTMLImageElement>,
-  environmentPatternCache: Record<string, CanvasPattern | null>
-) => {
-  environment.tiles.forEach((tile) => {
-    const screenX = tile.x * tileSize - cx;
-    const screenY = tile.y * tileSize - cy;
-
-    if (
-      screenX + tileSize < 0 ||
-      screenY + tileSize < 0 ||
-      screenX > dimensions.width ||
-      screenY > dimensions.height
-    ) {
-      return;
-    }
-
-    const textureUrl = getEnvironmentAssetURL(environment.theme, tile.type);
-    const textureImage = textureUrl ? environmentTextureCache[textureUrl] : undefined;
-    let usedPattern: CanvasPattern | null = null;
-
-    if (textureImage && textureImage.complete && textureImage.naturalWidth > 0) {
-      const patternKey = `${environment.theme}_${tile.type}`;
-      usedPattern = environmentPatternCache[patternKey] || null;
-      if (!usedPattern) {
-        usedPattern = ctx.createPattern(textureImage, 'repeat');
-        environmentPatternCache[patternKey] = usedPattern;
-      }
-    }
-
-    if (usedPattern) {
-      ctx.fillStyle = usedPattern;
-      ctx.fillRect(screenX, screenY, tileSize, tileSize);
-    } else {
-      ctx.fillStyle = getCraftPixTileColor(tile.type, environment.theme);
-      ctx.fillRect(screenX, screenY, tileSize, tileSize);
-    }
-
-    if (tile.type === 'trap') {
-      ctx.strokeStyle = '#f59e0b';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(screenX + 6, screenY + 6);
-      ctx.lineTo(screenX + 26, screenY + 26);
-      ctx.moveTo(screenX + 26, screenY + 6);
-      ctx.lineTo(screenX + 6, screenY + 26);
-      ctx.stroke();
-    }
-  });
-};
-
 const CHARACTER_SPRITE_URLS: Record<string, string> = {
   // Dark Elf pack — has PNG/Dark_Elves/CharacterN_faceN.png
   playerVampireHunter: '/craftpix-net-636003-free-dark-elf-pixel-art-asset-pack/PNG/Dark_Elves/Character1_face1.png',
@@ -2255,26 +2198,23 @@ export default function DungeonCanvas({
       cy += (Math.random() - 0.5) * screenShakeRef.current;
     }
 
-    // Draw CraftPix environment tiles behind the level
-    drawCraftPixEnvironment(
-      ctx,
-      environment,
-      TILE_SIZE,
-      dimensions,
-      cx,
-      cy,
-      environmentTextureCacheRef.current,
-      environmentPatternCacheRef.current
-    );
-
     // Determine viewport coordinates
     const startX = Math.max(0, Math.floor(cx / 32));
     const endX = Math.min(level.width, Math.ceil((cx + dimensions.width) / 32));
     const startY = Math.max(0, Math.floor(cy / 32));
     const endY = Math.min(level.height, Math.ceil((cy + dimensions.height) / 32));
 
-    // Theme color adjustments
+    // Theme color palettes for rich dungeon rendering
     const isLavaTheme = ['DragonNest', 'VolcanicWastes', 'EternalThrone'].includes(level.floorTheme);
+    const isPalaceTheme = ['RoyalVampirePalace', 'ForsakenCathedral'].includes(level.floorTheme);
+    const isSwampTheme = ['HauntedVillage', 'BlackSwamp', 'CrimsonGraveyard'].includes(level.floorTheme);
+
+    // Color tokens per theme
+    const floorBase = isLavaTheme ? '#241414' : isPalaceTheme ? '#1a1726' : isSwampTheme ? '#151f18' : '#1c1e26';
+    const floorAccent = isLavaTheme ? '#3d201e' : isPalaceTheme ? '#2a243a' : isSwampTheme ? '#223026' : '#282b38';
+    const wallTop = isLavaTheme ? '#59291e' : isPalaceTheme ? '#3b3452' : isSwampTheme ? '#273b2d' : '#383d52';
+    const wallFace = isLavaTheme ? '#2e120b' : isPalaceTheme ? '#1e1a2b' : isSwampTheme ? '#121e16' : '#1d1f2a';
+    const wallOutline = isLavaTheme ? '#140805' : '#0a0b10';
 
     // 1. Draw Grid Tiles
     for (let y = startY; y < endY; y++) {
@@ -2284,37 +2224,56 @@ export default function DungeonCanvas({
         const screenY = y * 32 - cy;
 
         if (!tile.explored) {
-          // Draw dark navy fog of war (NOT pure black, so we can see the canvas is rendering)
-          ctx.fillStyle = '#07070f';
+          // Unexplored fog: clean pitch dark void without grid lines
+          ctx.fillStyle = '#05050a';
           ctx.fillRect(screenX, screenY, 32, 32);
           continue;
         }
 
-        // Draw Floors
+        // Draw Dungeon Floor Flagstones
         if (tile.type === 'Floor' || tile.type === 'Chest' || tile.type === 'Stairs' || tile.type === 'Door') {
-          // Use semi-transparent fill to let the beautiful procedural environment show through
-          ctx.fillStyle = isLavaTheme ? 'rgba(30, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.2)';
+          // Base floor tile fill
+          ctx.fillStyle = floorBase;
           ctx.fillRect(screenX, screenY, 32, 32);
 
-          // Render subtle retro brick borders
-          ctx.strokeStyle = isLavaTheme ? 'rgba(100, 30, 20, 0.4)' : 'rgba(255, 255, 255, 0.05)';
+          // Brick / Flagstone texture pattern
+          ctx.fillStyle = floorAccent;
+          if ((x + y) % 2 === 0) {
+            ctx.fillRect(screenX + 2, screenY + 2, 13, 13);
+            ctx.fillRect(screenX + 17, screenY + 17, 13, 13);
+          } else {
+            ctx.fillRect(screenX + 17, screenY + 2, 13, 13);
+            ctx.fillRect(screenX + 2, screenY + 17, 13, 13);
+          }
+
+          // Subtle floor brick mortar outline
+          ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
           ctx.lineWidth = 1;
           ctx.strokeRect(screenX, screenY, 32, 32);
         }
 
-        // Draw Walls
+        // Draw 3D Dungeon Walls
         if (tile.type === 'Wall') {
-          // Walls should be opaque to define the dungeon layout clearly
-          ctx.fillStyle = isLavaTheme ? '#2a110a' : '#1e1e24';
+          // Solid dark wall face
+          ctx.fillStyle = wallFace;
           ctx.fillRect(screenX, screenY, 32, 32);
           
-          // Add a faux 3D top edge highlight to make walls pop
-          ctx.fillStyle = isLavaTheme ? '#4a1d10' : '#2d2d36';
-          ctx.fillRect(screenX, screenY, 32, 10);
+          // 3D Top bevel lip highlight
+          ctx.fillStyle = wallTop;
+          ctx.fillRect(screenX, screenY, 32, 8);
 
-          ctx.strokeStyle = isLavaTheme ? '#1c100a' : '#0e1013';
-          ctx.lineWidth = 1.5;
+          // Wall brick mortar lines
+          ctx.strokeStyle = wallOutline;
+          ctx.lineWidth = 1;
           ctx.strokeRect(screenX, screenY, 32, 32);
+
+          // Subtle vertical brick divider on wall face
+          if (y % 2 === 0) {
+            ctx.beginPath();
+            ctx.moveTo(screenX + 16, screenY + 8);
+            ctx.lineTo(screenX + 16, screenY + 32);
+            ctx.stroke();
+          }
         }
 
         // Wall Decor details
