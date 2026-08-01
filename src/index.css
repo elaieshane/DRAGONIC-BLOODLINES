@@ -17,6 +17,64 @@ body {
   overflow-x: hidden;
 }
 
+body.gothic-bg {
+  background: var(--abyss);
+}
+
+.site-header,
+.site-footer {
+  width: 100%;
+  padding: 1rem clamp(1rem, 3vw, 2rem);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: rgba(11, 7, 8, 0.82);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+}
+
+.brand-title {
+  font-family: var(--font-display);
+  color: var(--bone);
+  font-size: 0.95rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.brand-subtitle {
+  font-family: var(--font-body);
+  color: var(--bone-dim);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.header-status {
+  font-family: var(--font-pixel);
+  color: var(--ember);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+}
+
+.site-content {
+  flex: 1;
+  min-height: 0;
+}
+
+.site-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(11, 7, 8, 0.9);
+  color: var(--bone-dim);
+  font-family: var(--font-pixel);
+  font-size: 0.675rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.site-footer span {
+  opacity: 0.9;
+}
+
 /* CRT Scanlines and Retro Vignette filters */
 .crt-scanlines {
   position: absolute;
@@ -209,6 +267,48 @@ body {
   font-family: var(--font-body);
   overflow-x: hidden;
   isolation: isolate;
+}
+
+body.gothic-bg {
+  background: var(--abyss);
+}
+
+.page-shell {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.gothic-screen {
+  width: 100%;
+  min-height: 100%;
+  position: relative;
+}
+
+.gothic-section {
+  width: 100%;
+  padding: 0;
+}
+
+.gothic-panel {
+  border-radius: 1.25rem;
+  background: rgba(15, 11, 13, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+}
+
+.gothic-heading {
+  font-family: var(--font-display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bone);
+}
+
+.gothic-subtitle {
+  font-family: var(--font-body);
+  color: var(--bone-dim);
 }
 
 .gothic-bg a{ color: var(--ember); }
