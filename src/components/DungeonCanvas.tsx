@@ -668,6 +668,22 @@ export default function DungeonCanvas({
     })
   );
 
+  const playerRef = useRef<PlayerState>(player);
+  const levelRef = useRef<LevelData>(level);
+  const settingsRef = useRef<GameSettings>(settings);
+
+  useEffect(() => {
+    playerRef.current = player;
+  }, [player]);
+
+  useEffect(() => {
+    levelRef.current = level;
+  }, [level]);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
   // Companion system representation
   interface CompanionEntity {
     id: string;
@@ -868,8 +884,9 @@ export default function DungeonCanvas({
 
   // Helper: check if a coordinate blocks movement
   const isWallOrSolid = (tx: number, ty: number): boolean => {
-    if (tx < 0 || tx >= level.width || ty < 0 || ty >= level.height) return true;
-    const tile = level.grid[ty][tx];
+    const currentLevel = levelRef.current;
+    if (tx < 0 || tx >= currentLevel.width || ty < 0 || ty >= currentLevel.height) return true;
+    const tile = currentLevel.grid[ty][tx];
     return tile.type === 'Wall';
   };
 
@@ -883,23 +900,23 @@ export default function DungeonCanvas({
 
   // Explore cells around player to clear Fog (called from the game-loop)
   const exploreAroundPlayer = (px: number, py: number) => {
-    // Radius of 10 tiles gives a ~20-tile wide visible window around the player
+    const currentLevel = levelRef.current;
     const radius = 10;
     let gridChanged = false;
     for (let dy = -radius; dy <= radius; dy++) {
       for (let dx = -radius; dx <= radius; dx++) {
         const tx = px + dx;
         const ty = py + dy;
-        if (tx >= 0 && tx < level.width && ty >= 0 && ty < level.height) {
-          if (!level.grid[ty][tx].explored) {
-            level.grid[ty][tx].explored = true;
+        if (tx >= 0 && tx < currentLevel.width && ty >= 0 && ty < currentLevel.height) {
+          if (!currentLevel.grid[ty][tx].explored) {
+            currentLevel.grid[ty][tx].explored = true;
             gridChanged = true;
           }
         }
       }
     }
     if (gridChanged) {
-      setLevel({ ...level });
+      setLevel({ ...currentLevel });
     }
   };
 
@@ -973,10 +990,11 @@ export default function DungeonCanvas({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [player, level]);
+  }, []);
 
   const triggerDash = () => {
-    if (player.dashCooldown > 0 || player.dashActiveTime > 0) return;
+    const currentPlayer = playerRef.current;
+    if (currentPlayer.dashCooldown > 0 || currentPlayer.dashActiveTime > 0) return;
 
     // Get movement direction
     let dx = 0;
@@ -988,10 +1006,10 @@ export default function DungeonCanvas({
 
     // If standing still, dash in facing direction
     if (dx === 0 && dy === 0) {
-      if (player.facing === 'left') dx = -1;
-      if (player.facing === 'right') dx = 1;
-      if (player.facing === 'up') dy = -1;
-      if (player.facing === 'down') dy = 1;
+      if (currentPlayer.facing === 'left') dx = -1;
+      if (currentPlayer.facing === 'right') dx = 1;
+      if (currentPlayer.facing === 'up') dy = -1;
+      if (currentPlayer.facing === 'down') dy = 1;
     }
 
     // Normalize
@@ -1002,7 +1020,7 @@ export default function DungeonCanvas({
     }
 
     // Set player dash
-    const baseDashCooldown = Math.max(20, 60 - player.stats.agility * 1); // frames
+    const baseDashCooldown = Math.max(20, 60 - currentPlayer.stats.agility * 1); // frames
     setPlayer(prev => ({
       ...prev,
       dashActiveTime: 10, // 10 frames of speed and invincibility
@@ -1011,7 +1029,7 @@ export default function DungeonCanvas({
     }));
 
     playSound('swing');
-    spawnSplashParticles(player.x, player.y, '#e4e4e7', 10);
+    spawnSplashParticles(currentPlayer.x, currentPlayer.y, '#e4e4e7', 10);
   };
 
   // Touch button handlers
@@ -1027,8 +1045,9 @@ export default function DungeonCanvas({
   };
 
   const triggerESpell = () => {
-    if (player.mana < 30) {
-      spawnDamageNumber(player.x, player.y - 12, 'No Mana (30 Required)!', '#c084fc');
+    const currentPlayer = playerRef.current;
+    if (currentPlayer.mana < 30) {
+      spawnDamageNumber(currentPlayer.x, currentPlayer.y - 12, 'No Mana (30 Required)!', '#c084fc');
       return;
     }
 
@@ -1039,23 +1058,27 @@ export default function DungeonCanvas({
     }));
 
     playSound('spell');
-    spawnDamageNumber(player.x, player.y - 12, 'Magma Fissure! 🔥', '#f97316');
+    spawnDamageNumber(currentPlayer.x, currentPlayer.y - 12, 'Magma Fissure! 🔥', '#f97316');
     screenShakeRef.current = 12;
 
     // Determine path direction
     let dx = 0;
     let dy = 0;
-    if (player.facing === 'left') dx = -32;
-    else if (player.facing === 'right') dx = 32;
-    else if (player.facing === 'up') dy = -32;
-    else if (player.facing === 'down') dy = 32;
+    if (currentPlayer.facing === 'left') dx = -32;
+    else if (currentPlayer.facing === 'right') dx = 32;
+    else if (currentPlayer.facing === 'up') dy = -32;
+    else if (currentPlayer.facing === 'down') dy = 32;
+
+    const originX = currentPlayer.x;
+    const originY = currentPlayer.y;
+    const castArcanePower = currentPlayer.stats.arcane;
 
     // Spawn 5 sequential fire erupts
     for (let i = 1; i <= 5; i++) {
       setTimeout(() => {
         if (!gameActive || isSheetOpen) return;
-        const fx = player.x + dx * i;
-        const fy = player.y + dy * i;
+        const fx = originX + dx * i;
+        const fy = originY + dy * i;
 
         // Check if wall
         const tx = Math.floor(fx / 32);
@@ -1086,7 +1109,7 @@ export default function DungeonCanvas({
         enemiesRef.current.forEach(e => {
           const dist = Math.sqrt((e.x - fx) ** 2 + (e.y - fy) ** 2);
           if (dist < 28 + e.size) {
-            const finalDmg = Math.round((22 + player.stats.arcane * 2.2) * (0.9 + Math.random() * 0.2));
+            const finalDmg = Math.round((22 + castArcanePower * 2.2) * (0.9 + Math.random() * 0.2));
             e.health -= finalDmg;
             spawnDamageNumber(e.x, e.y, `${finalDmg} 🌋`, '#f97316');
             spawnSplashParticles(e.x, e.y, '#f97316', 6);
@@ -1098,26 +1121,32 @@ export default function DungeonCanvas({
   };
 
   const triggerSpell = () => {
-    if (player.mana < 15) {
-      spawnDamageNumber(player.x, player.y - 12, 'No Mana!', '#c084fc');
+    const currentPlayer = playerRef.current;
+    const currentSettings = settingsRef.current;
+
+    if (currentPlayer.mana < 15) {
+      spawnDamageNumber(currentPlayer.x, currentPlayer.y - 12, 'No Mana!', '#c084fc');
       return;
     }
 
     // Spawn Projectile
     let vx = 0;
     let vy = 0;
-    if (player.facing === 'left') vx = -4.5;
-    else if (player.facing === 'right') vx = 4.5;
-    else if (player.facing === 'up') vy = -4.5;
-    else if (player.facing === 'down') vy = 4.5;
+    if (currentPlayer.facing === 'left') vx = -4.5;
+    else if (currentPlayer.facing === 'right') vx = 4.5;
+    else if (currentPlayer.facing === 'up') vy = -4.5;
+    else if (currentPlayer.facing === 'down') vy = 4.5;
 
     // Magic scaling & difficulty modifier
-    let baseDmg = 15 + player.stats.arcane * 1.8;
-    if (settings.difficulty === 'Casual') baseDmg *= 1.3;
-    else if (settings.difficulty === 'Nightmare') baseDmg *= 0.8;
+    let baseDmg = 15 + currentPlayer.stats.arcane * 1.8;
+    if (currentSettings.difficulty === 'Casual') baseDmg *= 1.3;
+    else if (currentSettings.difficulty === 'Nightmare') baseDmg *= 0.8;
     const dmg = Math.round(baseDmg);
 
-    const checkDoubleCast = player.activeBoons.includes('Double Cast') && Math.random() < 0.25;
+    const checkDoubleCast = currentPlayer.activeBoons.includes('Double Cast') && Math.random() < 0.25;
+
+    const originX = currentPlayer.x;
+    const originY = currentPlayer.y;
 
     const fireProjectile = (offsetAngle = 0) => {
       let finalVx = vx;
@@ -1132,8 +1161,8 @@ export default function DungeonCanvas({
 
       projectilesRef.current.push({
         id: `proj_${Date.now()}_${Math.random()}`,
-        x: player.x,
-        y: player.y,
+        x: originX,
+        y: originY,
         vx: finalVx,
         vy: finalVy,
         size: 8,
@@ -1146,13 +1175,13 @@ export default function DungeonCanvas({
     };
 
     playSound('spell');
-    spawnSplashParticles(player.x, player.y, '#f97316', 10);
-    spawnSplashParticles(player.x, player.y, '#facc15', 6);
+    spawnSplashParticles(originX, originY, '#f97316', 10);
+    spawnSplashParticles(originX, originY, '#facc15', 6);
     screenShakeRef.current = Math.max(screenShakeRef.current, 4);
     fireProjectile();
     if (checkDoubleCast) {
       fireProjectile(0.2);
-      spawnDamageNumber(player.x, player.y - 12, 'Double Cast!', '#e9d5ff');
+      spawnDamageNumber(originX, originY - 12, 'Double Cast!', '#e9d5ff');
     }
 
     setPlayer(prev => ({
@@ -1162,22 +1191,24 @@ export default function DungeonCanvas({
   };
 
   const handleMeleeAttack = () => {
+    const currentPlayer = playerRef.current;
+    const currentSettings = settingsRef.current;
     const now = Date.now();
-    const weaponCooldown = Math.max(250, 600 - player.stats.agility * 8); // in ms
-    if (now - player.lastAttackTime < weaponCooldown) return;
+    const weaponCooldown = Math.max(250, 600 - currentPlayer.stats.agility * 8); // in ms
+    if (now - currentPlayer.lastAttackTime < weaponCooldown) return;
 
     playSound('swing');
 
     // Swing arc box in front
-    let hitX = player.x;
-    let hitY = player.y;
-    const hitRange = player.equipped.Weapon?.icon === 'whip' ? 64 : 36;
+    let hitX = currentPlayer.x;
+    let hitY = currentPlayer.y;
+    const hitRange = currentPlayer.equipped.Weapon?.icon === 'whip' ? 64 : 36;
     const hitSize = 28;
 
-    if (player.facing === 'left') hitX -= hitRange / 2;
-    else if (player.facing === 'right') hitX += hitRange / 2;
-    else if (player.facing === 'up') hitY -= hitRange / 2;
-    else if (player.facing === 'down') hitY += hitRange / 2;
+    if (currentPlayer.facing === 'left') hitX -= hitRange / 2;
+    else if (currentPlayer.facing === 'right') hitX += hitRange / 2;
+    else if (currentPlayer.facing === 'up') hitY -= hitRange / 2;
+    else if (currentPlayer.facing === 'down') hitY += hitRange / 2;
 
     // Visual melee swipe projectile that lasts 5 frames
     projectilesRef.current.push({
@@ -1189,17 +1220,17 @@ export default function DungeonCanvas({
       size: hitSize,
       damage: 0, // Visual only
       isPlayer: true,
-      color: player.equipped.Weapon?.icon === 'whip' ? '#e2e8f0' : '#f43f5e',
+      color: currentPlayer.equipped.Weapon?.icon === 'whip' ? '#e2e8f0' : '#f43f5e',
       duration: 6,
-      type: player.equipped.Weapon?.icon === 'whip' ? 'whip_strike' : 'melee_swipe',
+      type: currentPlayer.equipped.Weapon?.icon === 'whip' ? 'whip_strike' : 'melee_swipe',
     });
 
     // Check hit on all enemies in range & difficulty modifier
-    let rawMeleeDmg = 10 + player.stats.strength * 1.5 + (player.equipped.Weapon?.stats.damage || 0);
-    if (settings.difficulty === 'Casual') rawMeleeDmg *= 1.3;
-    else if (settings.difficulty === 'Nightmare') rawMeleeDmg *= 0.8;
+    let rawMeleeDmg = 10 + currentPlayer.stats.strength * 1.5 + (currentPlayer.equipped.Weapon?.stats.damage || 0);
+    if (currentSettings.difficulty === 'Casual') rawMeleeDmg *= 1.3;
+    else if (currentSettings.difficulty === 'Nightmare') rawMeleeDmg *= 0.8;
     const baseMeleeDmg = Math.round(rawMeleeDmg);
-    const isIgnite = player.activeBoons.includes("Dragon's Breath");
+    const isIgnite = currentPlayer.activeBoons.includes("Dragon's Breath");
 
     let hitAtLeastOne = false;
 
@@ -1210,7 +1241,7 @@ export default function DungeonCanvas({
         let isCrit = false;
         let finalDmg = baseMeleeDmg;
         
-        if (player.activeBoons.includes('Vanguard_Blessing')) {
+        if (currentPlayer.activeBoons.includes('Vanguard_Blessing')) {
           if (Math.random() < 0.20) { // 20% crit chance
             isCrit = true;
             finalDmg = Math.round(finalDmg * 1.6); // 1.6x damage
@@ -1245,8 +1276,8 @@ export default function DungeonCanvas({
         }
 
         // Lifesteal from Renegade Vampire or weapons
-        let totalLifesteal = (player.equipped.Weapon?.stats.lifesteal || 0) + (player.equipped.Ring?.stats.lifesteal || 0);
-        if (player.activeBoons.includes('Vampiric Touch')) {
+        let totalLifesteal = (currentPlayer.equipped.Weapon?.stats.lifesteal || 0) + (currentPlayer.equipped.Ring?.stats.lifesteal || 0);
+        if (currentPlayer.activeBoons.includes('Vampiric Touch')) {
           // If killed, we heal 5% max HP later, but add general siphoning
           totalLifesteal += 0.02;
         }
@@ -1258,7 +1289,7 @@ export default function DungeonCanvas({
               ...prev,
               health: Math.min(prev.maxHealth, prev.health + healAmount),
             }));
-            spawnDamageNumber(player.x, player.y - 12, `+${healAmount} HP 🩸`, '#22c55e');
+            spawnDamageNumber(currentPlayer.x, currentPlayer.y - 12, `+${healAmount} HP 🩸`, '#22c55e');
           }
         }
       }
@@ -1302,26 +1333,24 @@ export default function DungeonCanvas({
 
     animFrameId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animFrameId);
-  }, [player, level, dimensions, gameActive, isSheetOpen, activeDialogue, bossIntroActive]);
+  }, [dimensions.width, dimensions.height, gameActive, isSheetOpen, activeDialogue, bossIntroActive]);
 
   const updatePlayerAndPhysics = () => {
-    // 1. Move Player
+    const currentPlayer = playerRef.current;
+
     let dx = 0;
     let dy = 0;
 
-    if (player.dashActiveTime > 0) {
-      // Dashing - move quickly in dash dir
-      dx = player.dashDir.x * 6.5;
-      dy = player.dashDir.y * 6.5;
+    if (currentPlayer.dashActiveTime > 0) {
+      dx = currentPlayer.dashDir.x * 6.5;
+      dy = currentPlayer.dashDir.y * 6.5;
     } else {
-      // Regular move inputs
       if (keysRef.current.has('w') || keysRef.current.has('arrowup')) dy = -1;
       if (keysRef.current.has('s') || keysRef.current.has('arrowdown')) dy = 1;
       if (keysRef.current.has('a') || keysRef.current.has('arrowleft')) dx = -1;
       if (keysRef.current.has('d') || keysRef.current.has('arrowright')) dx = 1;
 
-      // Normal speed calculations
-      const baseSpeed = 2.0 + player.stats.agility * 0.04;
+      const baseSpeed = 2.0 + currentPlayer.stats.agility * 0.04;
       const length = Math.sqrt(dx * dx + dy * dy);
       if (length > 0) {
         dx = (dx / length) * baseSpeed;
@@ -1329,24 +1358,21 @@ export default function DungeonCanvas({
       }
     }
 
-    // Determine facing
-    let nextFacing = player.facing;
+    let nextFacing = currentPlayer.facing;
     if (dx < 0) nextFacing = 'left';
     else if (dx > 0) nextFacing = 'right';
     else if (dy < 0) nextFacing = 'up';
-    else if (dy > 1) nextFacing = 'down';
+    else if (dy > 0) nextFacing = 'down';
 
-    // 2. Continuous Collision Detection with walls
-    let px = player.x + dx;
-    let py = player.y + dy;
+    let nextX = currentPlayer.x + dx;
+    let nextY = currentPlayer.y + dy;
 
-    // Check X boundaries
     const playerRadius = 10;
     const checkXCells = [
-      { x: Math.floor((px - playerRadius) / 32), y: Math.floor((player.y - playerRadius) / 32) },
-      { x: Math.floor((px + playerRadius) / 32), y: Math.floor((player.y - playerRadius) / 32) },
-      { x: Math.floor((px - playerRadius) / 32), y: Math.floor((player.y + playerRadius) / 32) },
-      { x: Math.floor((px + playerRadius) / 32), y: Math.floor((player.y + playerRadius) / 32) },
+      { x: Math.floor((nextX - playerRadius) / 32), y: Math.floor((currentPlayer.y - playerRadius) / 32) },
+      { x: Math.floor((nextX + playerRadius) / 32), y: Math.floor((currentPlayer.y - playerRadius) / 32) },
+      { x: Math.floor((nextX - playerRadius) / 32), y: Math.floor((currentPlayer.y + playerRadius) / 32) },
+      { x: Math.floor((nextX + playerRadius) / 32), y: Math.floor((currentPlayer.y + playerRadius) / 32) },
     ];
 
     let collisionX = false;
@@ -1356,16 +1382,15 @@ export default function DungeonCanvas({
         break;
       }
     }
-    if (!collisionX) {
-      player.x = px;
+    if (collisionX) {
+      nextX = currentPlayer.x;
     }
 
-    // Check Y boundaries
     const checkYCells = [
-      { x: Math.floor((player.x - playerRadius) / 32), y: Math.floor((py - playerRadius) / 32) },
-      { x: Math.floor((player.x + playerRadius) / 32), y: Math.floor((py - playerRadius) / 32) },
-      { x: Math.floor((player.x - playerRadius) / 32), y: Math.floor((py + playerRadius) / 32) },
-      { x: Math.floor((player.x + playerRadius) / 32), y: Math.floor((py + playerRadius) / 32) },
+      { x: Math.floor((currentPlayer.x - playerRadius) / 32), y: Math.floor((nextY - playerRadius) / 32) },
+      { x: Math.floor((currentPlayer.x + playerRadius) / 32), y: Math.floor((nextY - playerRadius) / 32) },
+      { x: Math.floor((currentPlayer.x - playerRadius) / 32), y: Math.floor((nextY + playerRadius) / 32) },
+      { x: Math.floor((currentPlayer.x + playerRadius) / 32), y: Math.floor((nextY + playerRadius) / 32) },
     ];
 
     let collisionY = false;
@@ -1375,27 +1400,25 @@ export default function DungeonCanvas({
         break;
       }
     }
-    if (!collisionY) {
-      player.y = py;
+    if (collisionY) {
+      nextY = currentPlayer.y;
     }
 
-    // Draw shadow particles if Shadow Step boon is active during dash
-    if (player.dashActiveTime > 0 && player.activeBoons.includes('Shadow Step') && gameFrame.current % 2 === 0) {
+    if (currentPlayer.dashActiveTime > 0 && currentPlayer.activeBoons.includes('Shadow Step') && gameFrame.current % 2 === 0) {
       particlesRef.current.push({
-        x: player.x,
-        y: player.y,
+        x: currentPlayer.x,
+        y: currentPlayer.y,
         vx: (Math.random() - 0.5) * 0.5,
         vy: (Math.random() - 0.5) * 0.5,
-        color: '#4b5563', // Shadow dark particle
+        color: '#4b5563',
         size: Math.random() * 4 + 2,
         duration: 0,
         maxDuration: 25,
         alpha: 0.8,
       });
 
-      // Damage enemies overlapping this spot
       enemiesRef.current.forEach(e => {
-        const d = Math.sqrt((e.x - player.x) ** 2 + (e.y - player.y) ** 2);
+        const d = Math.sqrt((e.x - currentPlayer.x) ** 2 + (e.y - currentPlayer.y) ** 2);
         if (d < e.size + 15) {
           e.health -= 2;
           spawnDamageNumber(e.x, e.y, '2 🦇', '#4b5563');
@@ -1403,46 +1426,44 @@ export default function DungeonCanvas({
       });
     }
 
-    // 3. Regen Mana (Arcane scaling) and manage cooldowns
-    let manaRegenRate = (1.0 + player.stats.arcane * 0.1) / 60; // 60 updates/sec
-    let nextMana = Math.min(player.maxMana, player.mana + manaRegenRate);
+    const manaRegenRate = (1.0 + currentPlayer.stats.arcane * 0.1) / 60;
+    const nextMana = Math.min(currentPlayer.maxMana, currentPlayer.mana + manaRegenRate);
 
-    // Active block shields
-    let shieldCool = player.shieldCooldown;
-    let shieldActive = player.shieldActive;
-    if (!shieldActive && player.activeBoons.includes('Blood Shield')) {
+    let shieldCool = currentPlayer.shieldCooldown;
+    let shieldActive = currentPlayer.shieldActive;
+    if (!shieldActive && currentPlayer.activeBoons.includes('Blood Shield')) {
       if (shieldCool > 0) {
         shieldCool--;
       } else {
         shieldActive = true;
-        spawnDamageNumber(player.x, player.y - 12, 'Blood Shield up!', '#f43f5e');
+        spawnDamageNumber(currentPlayer.x, currentPlayer.y - 12, 'Blood Shield up!', '#f43f5e');
       }
     }
 
-    // Decrease active dash times or cooldowns
-    setPlayer(prev => ({
-      ...prev,
-      x: player.x,
-      y: player.y,
+    const nextPlayer = {
+      ...currentPlayer,
+      x: nextX,
+      y: nextY,
       facing: nextFacing,
       mana: nextMana,
-      dashActiveTime: Math.max(0, prev.dashActiveTime - 1),
-      dashCooldown: Math.max(0, prev.dashCooldown - 1),
+      dashActiveTime: Math.max(0, currentPlayer.dashActiveTime - 1),
+      dashCooldown: Math.max(0, currentPlayer.dashCooldown - 1),
       shieldCooldown: shieldCool,
       shieldActive,
-    }));
+    };
 
-    // Auto trigger attack if Space is held
+    setPlayer(nextPlayer);
+    playerRef.current = nextPlayer;
+
     if (keysRef.current.has(' ') && !isSheetOpen) {
       handleMeleeAttack();
     }
 
-    // Smoothly focus camera
-    updateCamera(player.x, player.y);
+    updateCamera(nextPlayer.x, nextPlayer.y);
   };
 
   const updateProjectiles = () => {
-    // Filter out expired projectiles
+    const player = playerRef.current;
     projectilesRef.current = projectilesRef.current.filter(p => {
       p.x += p.vx;
       p.y += p.vy;
@@ -1489,9 +1510,9 @@ export default function DungeonCanvas({
   };
 
   const updateCompanionsAndAI = () => {
+    const currentPlayer = playerRef.current;
     companionsRef.current.forEach(comp => {
-      // 1. Follow player if too far
-      const distToPlayer = Math.sqrt((player.x - comp.x) ** 2 + (player.y - comp.y) ** 2);
+      const distToPlayer = Math.sqrt((currentPlayer.x - comp.x) ** 2 + (currentPlayer.y - comp.y) ** 2);
       
       // Look for the closest enemy
       let closestEnemy: Enemy | null = null;
@@ -1507,14 +1528,14 @@ export default function DungeonCanvas({
       const hasTarget = closestEnemy !== null && closestDist < 250;
       
       let damageMultiplier = 1.0;
-      if (player.activeBoons?.includes('Companions_Fortified')) {
+      if (currentPlayer.activeBoons?.includes('Companions_Fortified')) {
         damageMultiplier = 1.5;
       }
       const compDmg = Math.round(comp.damage * damageMultiplier);
 
       if (distToPlayer > 120) {
         // Force follow player if way too far
-        const angle = Math.atan2(player.y - comp.y, player.x - comp.x);
+        const angle = Math.atan2(currentPlayer.y - comp.y, currentPlayer.x - comp.x);
         comp.x += Math.cos(angle) * comp.speed * 1.5;
         comp.y += Math.sin(angle) * comp.speed * 1.5;
       } else if (hasTarget && closestEnemy) {
@@ -1593,7 +1614,7 @@ export default function DungeonCanvas({
       } else {
         // Idle follow player closely
         if (distToPlayer > 50) {
-          const angle = Math.atan2(player.y - comp.y, player.x - comp.x);
+          const angle = Math.atan2(currentPlayer.y - comp.y, currentPlayer.x - comp.x);
           comp.x += Math.cos(angle) * comp.speed * 0.9;
           comp.y += Math.sin(angle) * comp.speed * 0.9;
         }
@@ -1604,7 +1625,7 @@ export default function DungeonCanvas({
       const ty = Math.floor(comp.y / 32);
       if (isWallOrSolid(tx, ty)) {
         // Push companion towards player
-        const angle = Math.atan2(player.y - comp.y, player.x - comp.x);
+        const angle = Math.atan2(currentPlayer.y - comp.y, currentPlayer.x - comp.x);
         comp.x += Math.cos(angle) * 4;
         comp.y += Math.sin(angle) * 4;
       }
@@ -1612,32 +1633,35 @@ export default function DungeonCanvas({
   };
 
   const damagePlayer = (amount: number) => {
-    // Apply shield absorb
-    if (player.shieldActive) {
-      setPlayer(prev => ({
-        ...prev,
+    const currentPlayer = playerRef.current;
+    const currentSettings = settingsRef.current;
+
+    if (currentPlayer.shieldActive) {
+      const shieldPlayer = {
+        ...currentPlayer,
         shieldActive: false,
-        shieldCooldown: 1200, // 20 seconds
-      }));
-      spawnDamageNumber(player.x, player.y - 12, 'Blocked!', '#38bdf8');
+        shieldCooldown: 1200,
+      };
+      setPlayer(shieldPlayer);
+      playerRef.current = shieldPlayer;
+      spawnDamageNumber(currentPlayer.x, currentPlayer.y - 12, 'Blocked!', '#38bdf8');
       playSound('spell');
       return;
     }
 
-    // Def/vitality block
     const bonusDef = [
-      player.equipped.Weapon,
-      player.equipped.Armor,
-      player.equipped.Ring,
-      player.equipped.Relic,
+      currentPlayer.equipped.Weapon,
+      currentPlayer.equipped.Armor,
+      currentPlayer.equipped.Ring,
+      currentPlayer.equipped.Relic,
     ].reduce((sum, item) => sum + (item?.stats.defense || 0), 0);
 
-    const defenseVal = Math.round(player.stats.vitality * 0.2 + bonusDef);
+    const defenseVal = Math.round(currentPlayer.stats.vitality * 0.2 + bonusDef);
     
     // Difficulty modifier for damage taken
     let adjustedAmount = amount;
-    if (settings.difficulty === 'Casual') adjustedAmount *= 0.7;
-    else if (settings.difficulty === 'Nightmare') adjustedAmount *= 1.4;
+    if (currentSettings.difficulty === 'Casual') adjustedAmount *= 0.7;
+    else if (currentSettings.difficulty === 'Nightmare') adjustedAmount *= 1.4;
 
     const finalDmg = Math.max(2, Math.round(adjustedAmount - defenseVal));
 
@@ -1650,19 +1674,22 @@ export default function DungeonCanvas({
     
     // Screen Shake modifier
     let shakeAmt = 10;
-    if (settings.screenShake === 'None') shakeAmt = 0;
-    else if (settings.screenShake === 'Low') shakeAmt = 4;
+    if (currentSettings.screenShake === 'None') shakeAmt = 0;
+    else if (currentSettings.screenShake === 'Low') shakeAmt = 4;
     screenShakeRef.current = shakeAmt;
-    spawnDamageNumber(player.x, player.y, `-${finalDmg}`, '#f43f5e');
-    spawnSplashParticles(player.x, player.y, '#dc2626', 15);
+    spawnDamageNumber(currentPlayer.x, currentPlayer.y, `-${finalDmg}`, '#f43f5e');
+    spawnSplashParticles(currentPlayer.x, currentPlayer.y, '#dc2626', 15);
 
-    if (player.health - finalDmg <= 0) {
+    if (currentPlayer.health - finalDmg <= 0) {
       onGameOver();
     }
   };
 
   const updateEnemiesAndAI = () => {
-    // Update enemies list, filter dead ones to spawn gold/xp
+    const currentPlayer = playerRef.current;
+    const currentLevel = levelRef.current;
+    const currentSettings = settingsRef.current;
+
     enemiesRef.current = enemiesRef.current.filter(e => {
       if (e.health <= 0) {
         // Spawn loot & progression rewards!
@@ -1674,10 +1701,10 @@ export default function DungeonCanvas({
         if (onEnemyKilled) onEnemyKilled(e.type);
         
         let xpGained = e.xpReward;
-        let nextXp = player.xp + xpGained;
-        let nextLevel = player.level;
-        let nextXpNeeded = player.xpNeeded;
-        let nextStatPoints = player.statPoints;
+        let nextXp = currentPlayer.xp + xpGained;
+        let nextLevel = currentPlayer.level;
+        let nextXpNeeded = currentPlayer.xpNeeded;
+        let nextStatPoints = currentPlayer.statPoints;
         let selectionBoons: string[] = [];
 
         // Check level up
@@ -1687,12 +1714,12 @@ export default function DungeonCanvas({
           nextXpNeeded = Math.round(nextXpNeeded * 1.5);
           nextStatPoints += 5; // Give 5 stat points to distribute
           playSound('levelup');
-          spawnDamageNumber(player.x, player.y - 20, 'LEVEL UP!', '#eab308');
+          spawnDamageNumber(currentPlayer.x, currentPlayer.y - 20, 'LEVEL UP!', '#eab308');
 
           // Choose random new boon options to select
           const allBoons = ['Vampiric Touch', "Dragon's Breath", 'Blood Shield', 'Double Cast', 'Shadow Step'];
           // Pick 3 random boons player doesn't already have, or just pick 3 random
-          selectionBoons = allBoons.filter(b => !player.activeBoons.includes(b)).slice(0, 3);
+          selectionBoons = allBoons.filter(b => !currentPlayer.activeBoons.includes(b)).slice(0, 3);
           if (selectionBoons.length === 0) {
             selectionBoons = ['Vitality Surge', 'Strength Surge', 'Arcane Focus'].slice(0, 3);
           }
@@ -1715,7 +1742,7 @@ export default function DungeonCanvas({
           // Epic drop!
           const bossItem = generateRandomItem(
             Math.random() < 0.5 ? 'Weapon' : 'Armor', 
-            level.floorIndex
+            currentLevel.floorIndex
           );
           setPlayer(prev => ({
             ...prev,
@@ -1738,7 +1765,7 @@ export default function DungeonCanvas({
       const triggerScreenShake = (intensity: number) => { screenShakeRef.current = intensity; };
 
       // Update AI
-      AISystem.updateEnemyAI(e, player, level, addProjectile, spawnEnemy, triggerScreenShake, damagePlayer);
+      AISystem.updateEnemyAI(e, currentPlayer, currentLevel, addProjectile, spawnEnemy, triggerScreenShake, damagePlayer);
 
       return true;
     });
@@ -1769,87 +1796,90 @@ export default function DungeonCanvas({
   };
 
   const checkCollisionsAndTriggers = () => {
-    const px = Math.floor(player.x / 32);
-    const py = Math.floor(player.y / 32);
+    const currentPlayer = playerRef.current;
+    const currentLevel = levelRef.current;
 
-    if (px < 0 || px >= level.width || py < 0 || py >= level.height) return;
+    const px = Math.floor(currentPlayer.x / 32);
+    const py = Math.floor(currentPlayer.y / 32);
+
+    if (px < 0 || px >= currentLevel.width || py < 0 || py >= currentLevel.height) return;
 
     // 1. Explore cell clear
     exploreAroundPlayer(px, py);
 
     // 2. Chest interaction check
-    const currentTile = level.grid[py][px];
+    const currentTile = currentLevel.grid[py][px];
     if (currentTile.type === 'Chest') {
-      currentTile.type = 'Floor'; // Opened!
-      setLevel({ ...level });
+      currentTile.type = 'Floor';
+      setLevel({ ...currentLevel });
 
       playSound('chest');
-      spawnSplashParticles(player.x, player.y, '#f59e0b', 30); // Big golden burst
+      spawnSplashParticles(currentPlayer.x, currentPlayer.y, '#f59e0b', 30);
       lootPauseRef.current = 180;
 
-      // Generate random high-tier loot item!
       const itemTypes = ['Weapon', 'Armor', 'Ring', 'Relic'] as const;
       const rIdx = Math.floor(Math.random() * itemTypes.length);
       const chosenType = itemTypes[rIdx];
-      const lootedItem = generateRandomItem(chosenType, level.floorIndex);
+      const lootedItem = generateRandomItem(chosenType, currentLevel.floorIndex);
 
-      // Add to player inventory
+      let alertMsg = `Looted: ${lootedItem.name}!`;
       setPlayer(prev => {
         const inv = [...prev.inventory];
-        let alertMsg = `Looted: ${lootedItem.name}!`;
         if (inv.length < 15) {
           inv.push(lootedItem);
         } else {
           alertMsg = 'Inventory Full! Item lost.';
         }
-        spawnDamageNumber(player.x, player.y - 15, alertMsg, '#eab308');
         return {
           ...prev,
           inventory: inv,
         };
       });
+      spawnDamageNumber(currentPlayer.x, currentPlayer.y - 15, alertMsg, '#eab308');
     }
 
     // 2.2 Herb stepped-on check
     if (currentTile.type === 'Herb') {
-      currentTile.type = 'Floor'; // Consumed!
-      setLevel({ ...level });
-      playSound('levelup'); // Use healing sound cue
-      spawnSplashParticles(player.x, player.y, '#22c55e', 18); // Green burst
+      currentTile.type = 'Floor';
+      setLevel({ ...currentLevel });
+      playSound('levelup');
+      spawnSplashParticles(currentPlayer.x, currentPlayer.y, '#22c55e', 18);
       lootPauseRef.current = 180;
-      const healAmt = Math.round(player.maxHealth * 0.20);
+      const healAmt = Math.round(currentPlayer.maxHealth * 0.20);
       setPlayer(prev => ({
         ...prev,
         health: Math.min(prev.maxHealth, prev.health + healAmt),
       }));
-      spawnDamageNumber(player.x, player.y - 12, `+${healAmt} HP (Medicinal Sage Herb) 🌿`, '#22c55e');
+      spawnDamageNumber(currentPlayer.x, currentPlayer.y - 12, `+${healAmt} HP (Medicinal Sage Herb) 🌿`, '#22c55e');
     }
 
     // 2.3 Potion stepped-on check
     if (currentTile.type === 'Potion') {
-      currentTile.type = 'Floor'; // Consumed!
-      setLevel({ ...level });
-      playSound('spell'); // Magic potion sound cue
-      spawnSplashParticles(player.x, player.y, '#3b82f6', 18); // Blue/purple burst
+      currentTile.type = 'Floor';
+      setLevel({ ...currentLevel });
+      playSound('spell');
+      spawnSplashParticles(currentPlayer.x, currentPlayer.y, '#3b82f6', 18);
       lootPauseRef.current = 180;
-      const healAmt = Math.round(player.maxHealth * 0.35);
-      const manaAmt = Math.round(player.maxMana * 0.50);
+      const healAmt = Math.round(currentPlayer.maxHealth * 0.35);
+      const manaAmt = Math.round(currentPlayer.maxMana * 0.50);
       setPlayer(prev => ({
         ...prev,
         health: Math.min(prev.maxHealth, prev.health + healAmt),
         mana: Math.min(prev.maxMana, prev.mana + manaAmt),
       }));
-      spawnDamageNumber(player.x, player.y - 12, `Restored Vitality & Mana (Elixir Potion) 🧪`, '#3b82f6');
+      spawnDamageNumber(currentPlayer.x, currentPlayer.y - 12, `Restored Vitality & Mana (Elixir Potion) 🧪`, '#3b82f6');
     }
 
-    // 2.5 NPC interaction check
+    // 2.4 NPC interaction check
     if (currentTile.type === 'NPC') {
-      // Open interactive quest branching dialogue
+      currentTile.type = 'Floor';
+      setLevel({ ...currentLevel });
       playSound('spell');
-      currentTile.type = 'Floor'; // Convert to floor so they don't trigger it again instantly
-      setLevel({ ...level });
 
-      if (level.floorIndex === 1) {
+      const getPlayerPos = () => playerRef.current;
+      const getLevelData = () => levelRef.current;
+
+      if (currentLevel.floorIndex === 1) {
         setActiveDialogue({
           title: "Cyril, Arch-Mage of Embers",
           text: "Halt, traveler. My soul has been bound to these Crypts for centuries... The Draconic Bloodline is the only power capable of severing my shackles. Help me, and I shall bestow upon you ancient secrets of the Ash. But beware: magic of this tier always demands a heavy toll. Choose your path wisely.",
@@ -1857,6 +1887,7 @@ export default function DungeonCanvas({
             {
               text: "Purifying Sacrifice (Sacrifice 25% Current HP to receive Legendary Molten Hearthstone Relic)",
               action: () => {
+                const currentPlayer = getPlayerPos();
                 playSound('spell');
                 const relicItem: Item = {
                   id: `cyril_relic_${Date.now()}`,
@@ -1868,7 +1899,7 @@ export default function DungeonCanvas({
                     arcane: 8,
                     vitality: 4,
                   },
-                  icon: "crystal"
+                  icon: "crystal",
                 };
 
                 setPlayer(prev => {
@@ -1882,13 +1913,14 @@ export default function DungeonCanvas({
                   };
                 });
 
-                spawnDamageNumber(player.x, player.y - 15, "Looted Molten Hearthstone!", "#fbbf24");
+                spawnDamageNumber(currentPlayer.x, currentPlayer.y - 15, "Looted Molten Hearthstone!", "#fbbf24");
                 setActiveDialogue(null);
-              }
+              },
             },
             {
               text: "Blood Pact (Gain permanent +10 Strength, but Lose 20 Max Mana)",
               action: () => {
+                const currentPlayer = getPlayerPos();
                 playSound('spell');
                 setPlayer(prev => ({
                   ...prev,
@@ -1899,13 +1931,14 @@ export default function DungeonCanvas({
                   maxMana: Math.max(10, prev.maxMana - 20),
                   mana: Math.min(prev.mana, Math.max(10, prev.maxMana - 20)),
                 }));
-                spawnDamageNumber(player.x, player.y - 15, "+10 STR / -20 Max Mana 🩸", "#f43f5e");
+                spawnDamageNumber(currentPlayer.x, currentPlayer.y - 15, "+10 STR / -20 Max Mana 🩸", "#f43f5e");
                 setActiveDialogue(null);
-              }
+              },
             },
             {
               text: "Free Cyril (Heal completely to Full Health & grant active Blood Shield)",
               action: () => {
+                const currentPlayer = getPlayerPos();
                 playSound('levelup');
                 setPlayer(prev => ({
                   ...prev,
@@ -1913,13 +1946,13 @@ export default function DungeonCanvas({
                   shieldActive: true,
                   shieldCooldown: 0,
                 }));
-                spawnDamageNumber(player.x, player.y - 15, "Full Heal + Ward Shield Activated!", "#22c55e");
+                spawnDamageNumber(currentPlayer.x, currentPlayer.y - 15, "Full Heal + Ward Shield Activated!", "#22c55e");
                 setActiveDialogue(null);
-              }
-            }
-          ]
+              },
+            },
+          ],
         });
-      } else if (level.floorIndex === 2) {
+      } else if (currentLevel.floorIndex === 2) {
         setActiveDialogue({
           title: "Valerie, Crimson Blade Maiden",
           text: "Halt, slayer! I am Valerie of the Vanguard. I have tracked the high vampire nobility to this very cathedral. My sword arm is ready, but my blade requires a catalyst. If you can help me prepare, we can break through the undead ranks together. Choose how I shall aid your descent:",
@@ -1927,33 +1960,35 @@ export default function DungeonCanvas({
             {
               text: "Sisters in Arms (Valerie joins your quest as an active melee Sword Companion!)",
               action: () => {
+                const currentPlayer = getPlayerPos();
+                const currentLevel = getLevelData();
                 playSound('levelup');
                 setPlayer(prev => ({
                   ...prev,
                   activeBoons: [...prev.activeBoons, 'Companion_SwordLady'],
                 }));
-                // Spawn her immediately
                 if (!companionsRef.current.some(c => c.type === 'SwordLady')) {
                   companionsRef.current.push({
                     id: `companion_valerie_${Date.now()}`,
                     type: 'SwordLady',
                     name: 'Valerie, Crimson Blade Maiden',
-                    x: player.x - 32,
-                    y: player.y - 32,
+                    x: currentPlayer.x - 32,
+                    y: currentPlayer.y - 32,
                     size: 16,
                     speed: 2.2,
-                    damage: 18 + level.floorIndex * 4,
+                    damage: 18 + currentLevel.floorIndex * 4,
                     lastAttackTime: 0,
                     attackCooldown: 40,
                   });
                 }
-                spawnDamageNumber(player.x, player.y - 15, "Valerie joined your party! ⚔️", "#ec4899");
+                spawnDamageNumber(currentPlayer.x, currentPlayer.y - 15, "Valerie joined your party! ⚔️", "#ec4899");
                 setActiveDialogue(null);
-              }
+              },
             },
             {
               text: "Valerie's Crimson Saber (Obtain Valerie's Legendary Vanguard Greatsword)",
               action: () => {
+                const currentPlayer = getPlayerPos();
                 playSound('spell');
                 const saberItem: Item = {
                   id: `valerie_saber_${Date.now()}`,
@@ -1966,7 +2001,7 @@ export default function DungeonCanvas({
                     strength: 10,
                     agility: 5,
                   },
-                  icon: "greatsword"
+                  icon: "greatsword",
                 };
                 setPlayer(prev => {
                   const updatedInv = [...prev.inventory];
@@ -1976,13 +2011,14 @@ export default function DungeonCanvas({
                     inventory: updatedInv,
                   };
                 });
-                spawnDamageNumber(player.x, player.y - 15, "Looted Valerie's Crimson Saber!", "#fbbf24");
+                spawnDamageNumber(currentPlayer.x, currentPlayer.y - 15, "Looted Valerie's Crimson Saber!", "#fbbf24");
                 setActiveDialogue(null);
-              }
+              },
             },
             {
               text: "War Maiden's Blessing (Gain permanent Critical Hit Senses and +12 Max HP)",
               action: () => {
+                const currentPlayer = getPlayerPos();
                 playSound('levelup');
                 setPlayer(prev => ({
                   ...prev,
@@ -1990,13 +2026,13 @@ export default function DungeonCanvas({
                   health: prev.health + 12,
                   activeBoons: [...prev.activeBoons, 'Vanguard_Blessing'],
                 }));
-                spawnDamageNumber(player.x, player.y - 15, "+12 Max HP & Combat Senses! 🛡️", "#ef4444");
+                spawnDamageNumber(currentPlayer.x, currentPlayer.y - 15, "+12 Max HP & Combat Senses! 🛡️", "#ef4444");
                 setActiveDialogue(null);
-              }
-            }
-          ]
+              },
+            },
+          ],
         });
-      } else if (level.floorIndex === 3) {
+      } else if (currentLevel.floorIndex === 3) {
         setActiveDialogue({
           title: "Elysia, the Astral Sorceress",
           text: "A traveler... here in the magma depths? I am Elysia, an Astral Sorceress seeking the dormant starlight hidden within these caverns. Dracula's servants have trapped the cosmic ether. If you assist my focus, I can channel the universe's energy into your soul. What blessing do you seek?",
@@ -2004,33 +2040,35 @@ export default function DungeonCanvas({
             {
               text: "Cosmic Union (Elysia joins your quest as an active ranged Spell Companion!)",
               action: () => {
+                const currentPlayer = getPlayerPos();
+                const currentLevel = getLevelData();
                 playSound('levelup');
                 setPlayer(prev => ({
                   ...prev,
                   activeBoons: [...prev.activeBoons, 'Companion_Sorceress'],
                 }));
-                // Spawn her immediately
                 if (!companionsRef.current.some(c => c.type === 'Sorceress')) {
                   companionsRef.current.push({
                     id: `companion_elysia_${Date.now()}`,
                     type: 'Sorceress',
                     name: 'Elysia, Astral Sorceress',
-                    x: player.x + 32,
-                    y: player.y - 32,
+                    x: currentPlayer.x + 32,
+                    y: currentPlayer.y - 32,
                     size: 15,
                     speed: 1.8,
-                    damage: 15 + level.floorIndex * 5,
+                    damage: 15 + currentLevel.floorIndex * 5,
                     lastAttackTime: 0,
                     attackCooldown: 50,
                   });
                 }
-                spawnDamageNumber(player.x, player.y - 15, "Elysia joined your party! 🔮", "#a855f7");
+                spawnDamageNumber(currentPlayer.x, currentPlayer.y - 15, "Elysia joined your party! 🔮", "#a855f7");
                 setActiveDialogue(null);
-              }
+              },
             },
             {
               text: "Astral Void Staff (Obtain Elysia's Legendary Void Weaver Staff)",
               action: () => {
+                const currentPlayer = getPlayerPos();
                 playSound('spell');
                 const wandItem: Item = {
                   id: `elysia_wand_${Date.now()}`,
@@ -2043,7 +2081,7 @@ export default function DungeonCanvas({
                     arcane: 12,
                     manaRegen: 3.5,
                   },
-                  icon: "wand"
+                  icon: "wand",
                 };
                 setPlayer(prev => {
                   const updatedInv = [...prev.inventory];
@@ -2053,13 +2091,14 @@ export default function DungeonCanvas({
                     inventory: updatedInv,
                   };
                 });
-                spawnDamageNumber(player.x, player.y - 15, "Looted Elysia's Astral Wand!", "#fbbf24");
+                spawnDamageNumber(currentPlayer.x, currentPlayer.y - 15, "Looted Elysia's Astral Wand!", "#fbbf24");
                 setActiveDialogue(null);
-              }
+              },
             },
             {
               text: "Starlight Communion (Restore 100% Mana, permanent +15 Max Mana & +10 Arcane)",
               action: () => {
+                const currentPlayer = getPlayerPos();
                 playSound('spell');
                 setPlayer(prev => ({
                   ...prev,
@@ -2068,13 +2107,13 @@ export default function DungeonCanvas({
                   stats: {
                     ...prev.stats,
                     arcane: prev.stats.arcane + 10,
-                  }
+                  },
                 }));
-                spawnDamageNumber(player.x, player.y - 15, "+15 Max Mana & +10 Arcane! ✨", "#60a5fa");
+                spawnDamageNumber(currentPlayer.x, currentPlayer.y - 15, "+15 Max Mana & +10 Arcane! ✨", "#60a5fa");
                 setActiveDialogue(null);
-              }
-            }
-          ]
+              },
+            },
+          ],
         });
       } else {
         setActiveDialogue({
@@ -2084,6 +2123,7 @@ export default function DungeonCanvas({
             {
               text: "Solar Shielding (Heal to Full Health, and obtain +50 temporary Shield Ward)",
               action: () => {
+                const currentPlayer = getPlayerPos();
                 playSound('levelup');
                 setPlayer(prev => ({
                   ...prev,
@@ -2091,13 +2131,14 @@ export default function DungeonCanvas({
                   shieldActive: true,
                   shieldCooldown: 0,
                 }));
-                spawnDamageNumber(player.x, player.y - 15, "Full Heal + Solar Ward Activated!", "#f59e0b");
+                spawnDamageNumber(currentPlayer.x, currentPlayer.y - 15, "Full Heal + Solar Ward Activated!", "#f59e0b");
                 setActiveDialogue(null);
-              }
+              },
             },
             {
               text: "Celestial Armaments (Obtain a Legendary Valkyrie Mail Armor or Dragon Crest Relic)",
               action: () => {
+                const currentPlayer = getPlayerPos();
                 playSound('spell');
                 const gearType = Math.random() < 0.5 ? 'Armor' : 'Relic';
                 const gearItem: Item = gearType === 'Armor' ? {
@@ -2111,7 +2152,7 @@ export default function DungeonCanvas({
                     vitality: 45,
                     strength: 5,
                   },
-                  icon: "mail"
+                  icon: "mail",
                 } : {
                   id: `lyra_relic_${Date.now()}`,
                   name: "Valkyrie Dragon Crest",
@@ -2123,7 +2164,7 @@ export default function DungeonCanvas({
                     agility: 6,
                     vitality: 25,
                   },
-                  icon: "crest"
+                  icon: "crest",
                 };
 
                 setPlayer(prev => {
@@ -2134,46 +2175,49 @@ export default function DungeonCanvas({
                     inventory: updatedInv,
                   };
                 });
-                spawnDamageNumber(player.x, player.y - 15, `Looted: ${gearItem.name}! 🌟`, "#fbbf24");
+                spawnDamageNumber(currentPlayer.x, currentPlayer.y - 15, `Looted: ${gearItem.name}! 🌟`, "#fbbf24");
                 setActiveDialogue(null);
-              }
+              },
             },
             {
               text: "Sisters in Arms (Fortify Companions: If Valerie or Elysia are with you, they gain +50% Damage!)",
               action: () => {
+                const currentPlayer = getPlayerPos();
                 playSound('levelup');
                 setPlayer(prev => ({
                   ...prev,
                   activeBoons: [...prev.activeBoons, 'Companions_Fortified'],
                 }));
-                spawnSplashParticles(player.x, player.y, '#f59e0b', 25);
-                spawnDamageNumber(player.x, player.y - 15, "Allies Fortified: +50% Companion Damage! ✊", "#fbbf24");
+                spawnSplashParticles(currentPlayer.x, currentPlayer.y, '#f59e0b', 25);
+                spawnDamageNumber(currentPlayer.x, currentPlayer.y - 15, "Allies Fortified: +50% Companion Damage! ✊", "#fbbf24");
                 setActiveDialogue(null);
-              }
-            }
-          ]
+              },
+            },
+          ],
         });
       }
     }
 
-    // 3. Stairs trigger check
-    // Stairs are unlocked when the boss of this level dies
     const isBossDeadOrMissing = enemiesRef.current.filter(e => e.isBoss).length === 0;
     if (currentTile.type === 'Stairs') {
       if (isBossDeadOrMissing) {
         onNextFloor();
       } else {
-        // Inform player that stairs are guarded
-        spawnDamageNumber(player.x, player.y - 12, 'Boss guards the portal stairs!', '#f43f5e');
-        // bounce back player slightly
-        player.x -= player.facing === 'left' ? -15 : player.facing === 'right' ? 15 : 0;
-        player.y -= player.facing === 'up' ? -15 : player.facing === 'down' ? 15 : 0;
+        spawnDamageNumber(currentPlayer.x, currentPlayer.y - 12, 'Boss guards the portal stairs!', '#f43f5e');
+        const bounceX = currentPlayer.x + (currentPlayer.facing === 'left' ? 15 : currentPlayer.facing === 'right' ? -15 : 0);
+        const bounceY = currentPlayer.y + (currentPlayer.facing === 'up' ? 15 : currentPlayer.facing === 'down' ? -15 : 0);
+        const bouncedPlayer = { ...currentPlayer, x: bounceX, y: bounceY };
+        setPlayer(bouncedPlayer);
+        playerRef.current = bouncedPlayer;
       }
     }
   };
 
   // --- DRAW ENGINE (HTML5 2D Canvas Renderer) ---
   const drawGame = () => {
+    const currentPlayer = playerRef.current;
+    const currentLevel = levelRef.current;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
