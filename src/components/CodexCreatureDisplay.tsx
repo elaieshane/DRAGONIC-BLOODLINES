@@ -22,6 +22,8 @@ const FACTION_ACCENT: Record<Faction, { main: string; glow: string; bg: string }
   Abyssal: { main: '#0f172a', glow: '#475569', bg: '#02060f' },
   Mythological: { main: '#fbbf24', glow: '#fde68a', bg: '#2f1d04' },
   Eldritch: { main: '#db2777', glow: '#f472b6', bg: '#1d0822' },
+  Elves: { main: '#10b981', glow: '#6ee7b7', bg: '#042216' },
+  Orcs: { main: '#a3e635', glow: '#bef264', bg: '#17260d' },
   Uncategorized: { main: '#a1a1aa', glow: '#d4d4d8', bg: '#0f1013' },
 };
 

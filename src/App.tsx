@@ -599,7 +599,26 @@ export default function App() {
   };
 
   return (
-    <main className="w-full h-screen bg-black overflow-hidden flex flex-col justify-between font-sans select-none">
+    <main className="w-full h-screen gothic-bg overflow-hidden flex flex-col justify-between font-sans select-none">
+      <div className="fog" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
+      <div className="ember-field" aria-hidden="true">
+        <span className="ember" />
+        <span className="ember" />
+        <span className="ember" />
+        <span className="ember" />
+        <span className="ember" />
+        <span className="ember" />
+        <span className="ember" />
+        <span className="ember" />
+        <span className="ember" />
+        <span className="ember" />
+        <span className="ember" />
+        <span className="ember" />
+      </div>
       
       {/* 0. 3s Intro Logo Splash */}
       {screen === 'intro_splash' && (

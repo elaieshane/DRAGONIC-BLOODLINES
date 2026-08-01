@@ -11,7 +11,10 @@ body {
   background-color: #050507;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  min-height: 100vh;
+  font-family: var(--font-body), "Inter", ui-sans-serif, system-ui, sans-serif;
+  color: var(--bone);
+  overflow-x: hidden;
 }
 
 /* CRT Scanlines and Retro Vignette filters */
@@ -172,4 +175,341 @@ body {
   0%, 100% { transform: rotate(0deg); }
   40% { transform: rotate(18deg); }
   60% { transform: rotate(-6deg); }
+}
+
+:root{
+  /* ---- palette ---- */
+  --abyss:      #0b0708;
+  --charcoal:   #1a1412;
+  --charcoal-2: #241b18;
+  --iron:       #4a3f38;
+  --bone:       #ddd0b8;
+  --bone-dim:   #a99d8a;
+  --blood:      #7a1220;
+  --blood-hot:  #b81e2c;
+  --ember:      #e8743b;
+  --ember-soft: #d4622a;
+  --wyrm:       #6b4a9e;
+
+  /* ---- type ---- */
+  --font-hero:    'Pirata One', serif;
+  --font-display: 'Cinzel', serif;
+  --font-body:    'EB Garamond', serif;
+  --font-pixel:   'Press Start 2P', monospace;
+
+  /* ---- shape / motion ---- */
+  --radius: 3px;
+  --ease: cubic-bezier(.4,0,.2,1);
+}
+
+.gothic-bg{
+  position: relative;
+  background: var(--abyss);
+  color: var(--bone);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  isolation: isolate;
+}
+
+.gothic-bg a{ color: var(--ember); }
+
+.gothic-bg::before{
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px);
+  mix-blend-mode: overlay;
+}
+
+.gothic-bg::after{
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 40%, transparent 0%, transparent 35%, rgba(0,0,0,.55) 85%),
+    radial-gradient(circle at 20% 15%, rgba(232,116,59,.10), transparent 40%),
+    radial-gradient(circle at 82% 70%, rgba(107,74,158,.08), transparent 45%);
+  animation: torch-breathe 7s ease-in-out infinite;
+}
+
+@keyframes torch-breathe{
+  0%, 100% { opacity: .85; }
+  50%      { opacity: 1; }
+}
+
+.fog{
+  position: fixed;
+  inset: -10% -10%;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.fog span{
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  border-radius: 50%;
+  filter: blur(60px);
+  background: radial-gradient(circle, rgba(120,110,120,.10), transparent 65%);
+  mix-blend-mode: screen;
+  animation: fog-drift 38s linear infinite;
+}
+.fog span:nth-child(1){ top: 5%;  left: -20%; animation-duration: 42s; }
+.fog span:nth-child(2){ top: 40%; left: -30%; animation-duration: 55s; animation-delay: -12s; background: radial-gradient(circle, rgba(107,74,158,.08), transparent 65%); }
+.fog span:nth-child(3){ top: 70%; left: -10%; animation-duration: 48s; animation-delay: -25s; }
+
+@keyframes fog-drift{
+  0%   { transform: translateX(0) translateY(0); }
+  50%  { transform: translateX(60vw) translateY(-4vh); }
+  100% { transform: translateX(120vw) translateY(0); }
+}
+
+.ember-field{
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.ember-field .ember{
+  position: absolute;
+  bottom: -5%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--ember);
+  box-shadow: 0 0 6px 2px rgba(232,116,59,.8);
+  opacity: 0;
+  animation: ember-rise 9s ease-in infinite;
+}
+.ember-field .ember:nth-child(1){  left: 6%;  animation-delay: 0s;   }
+.ember-field .ember:nth-child(2){  left: 14%; animation-delay: 1.2s; }
+.ember-field .ember:nth-child(3){  left: 23%; animation-delay: 2.6s; }
+.ember-field .ember:nth-child(4){  left: 32%; animation-delay: .6s;  }
+.ember-field .ember:nth-child(5){  left: 41%; animation-delay: 3.4s; }
+.ember-field .ember:nth-child(6){  left: 50%; animation-delay: 1.8s; }
+.ember-field .ember:nth-child(7){  left: 59%; animation-delay: 4.1s; }
+.ember-field .ember:nth-child(8){  left: 68%; animation-delay: .2s;  }
+.ember-field .ember:nth-child(9){  left: 77%; animation-delay: 2.2s; }
+.ember-field .ember:nth-child(10){ left: 85%; animation-delay: 3.9s; }
+.ember-field .ember:nth-child(11){ left: 92%; animation-delay: 1.5s; }
+.ember-field .ember:nth-child(12){ left: 97%; animation-delay: 4.8s; }
+
+@keyframes ember-rise{
+  0%   { opacity: 0; transform: translate(0,0) scale(1); }
+  8%   { opacity: 1; }
+  100% { opacity: 0; transform: translate(2vw,-100vh) scale(.3); }
+}
+
+.gothic-bg > *:not(.fog):not(.ember-field){ position: relative; z-index: 2; }
+
+@media (prefers-reduced-motion: reduce){
+  .gothic-bg::after, .fog span, .ember-field .ember{ animation: none !important; }
+}
+
+.gothic-hero-title{
+  font-family: var(--font-hero);
+  font-weight: 400;
+  letter-spacing: .04em;
+  font-size: clamp(2.6rem, 7vw, 5.5rem);
+  line-height: 1.05;
+  color: var(--bone);
+  text-shadow: 0 0 18px rgba(232,116,59,.35), 0 0 60px rgba(122,18,32,.35);
+  margin: 0;
+}
+
+.gothic-h2, .gothic-h3{
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--bone);
+  font-weight: 700;
+}
+.gothic-h2{ font-size: clamp(1.4rem, 3vw, 2.1rem); }
+.gothic-h3{ font-size: 1.05rem; }
+
+.gothic-lede{
+  font-family: var(--font-body);
+  font-style: italic;
+  color: var(--bone-dim);
+  font-size: clamp(1.05rem, 2vw, 1.3rem);
+}
+
+.gothic-body{
+  font-family: var(--font-body);
+  color: var(--bone-dim);
+  font-size: 1.08rem;
+  line-height: 1.7;
+}
+.gothic-body.drop-cap::first-letter{
+  font-family: var(--font-hero);
+  font-size: 3.6em;
+  float: left;
+  line-height: .8;
+  padding: .05em .08em 0 0;
+  color: var(--ember);
+}
+
+.pixel-tag{
+  font-family: var(--font-pixel);
+  font-size: .55rem;
+  letter-spacing: .05em;
+  display: inline-block;
+  padding: .5em .6em;
+  background: var(--charcoal-2);
+  border: 1px solid var(--iron);
+  color: var(--ember);
+  image-rendering: pixelated;
+}
+.pixel-tag.rare{ color: var(--wyrm); border-color: var(--wyrm); }
+.pixel-tag.legendary{ color: var(--ember); border-color: var(--ember); }
+
+.gothic-nav{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem clamp(1.25rem, 5vw, 3rem);
+  border-bottom: 1px solid var(--iron);
+  background: linear-gradient(180deg, rgba(11,7,8,.9), rgba(11,7,8,.4));
+  backdrop-filter: blur(6px);
+}
+.gothic-nav .mark{
+  font-family: var(--font-display);
+  letter-spacing: .15em;
+  font-size: 1rem;
+  color: var(--bone);
+}
+.gothic-nav .links{
+  display: flex;
+  gap: clamp(1rem, 3vw, 2.5rem);
+  list-style: none;
+  margin: 0; padding: 0;
+}
+.gothic-nav .links a{
+  font-family: var(--font-display);
+  font-size: .78rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--bone-dim);
+  transition: color .25s var(--ease);
+}
+.gothic-nav .links a:hover{ color: var(--ember); }
+
+.gothic-hero{
+  padding: clamp(4rem, 12vw, 8rem) clamp(1.25rem, 5vw, 3rem);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+.gothic-hero .sigil{
+  font-size: 1.6rem;
+  color: var(--blood-hot);
+  filter: drop-shadow(0 0 10px rgba(184,30,44,.6));
+}
+
+.gothic-btn{
+  font-family: var(--font-display);
+  font-size: .85rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: .9em 1.8em;
+  border-radius: var(--radius);
+  display: inline-block;
+  cursor: pointer;
+  transition: transform .2s var(--ease), box-shadow .2s var(--ease), background .2s var(--ease);
+}
+.gothic-btn.primary{
+  background: linear-gradient(180deg, var(--blood-hot), var(--blood));
+  color: var(--bone);
+  border: 1px solid var(--blood-hot);
+  box-shadow: 0 0 0 rgba(232,116,59,0);
+}
+.gothic-btn.primary:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(184,30,44,.45), 0 0 24px rgba(232,116,59,.25);
+}
+.gothic-btn.ghost{
+  background: transparent;
+  color: var(--bone-dim);
+  border: 1px solid var(--iron);
+}
+.gothic-btn.ghost:hover{
+  color: var(--ember);
+  border-color: var(--ember);
+}
+
+.card-row{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  padding: 0 clamp(1.25rem, 5vw, 3rem) clamp(3rem, 8vw, 5rem);
+}
+
+.gothic-card{
+  position: relative;
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,.015) 0 2px, transparent 2px 14px),
+    linear-gradient(160deg, var(--charcoal-2), var(--charcoal));
+  border: 1px solid var(--iron);
+  border-radius: var(--radius);
+  padding: 1.75rem 1.5rem;
+  transition: border-color .25s var(--ease), transform .25s var(--ease), box-shadow .25s var(--ease);
+}
+.gothic-card:hover{
+  border-color: var(--ember-soft);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0,0,0,.5), 0 0 30px rgba(232,116,59,.12);
+}
+.gothic-card .corner{
+  position: absolute;
+  width: 14px; height: 14px;
+  border-color: var(--ember);
+  opacity: .8;
+}
+.gothic-card .corner.tl{ top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }
+.gothic-card .corner.tr{ top: -1px; right: -1px; border-top: 2px solid; border-right: 2px solid; }
+.gothic-card .corner.bl{ bottom: -1px; left: -1px; border-bottom: 2px solid; border-left: 2px solid; }
+.gothic-card .corner.br{ bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; }
+
+.gothic-card h3{ margin: .75rem 0 .5rem; }
+.gothic-card p{ margin: 0 0 1.1rem; font-size: .95rem; }
+
+.blood-divider{
+  height: 30px;
+  margin: 0 auto;
+  background: linear-gradient(180deg, var(--blood), rgba(122,18,32,0));
+  clip-path: polygon(
+    0% 0%, 100% 0%,
+    100% 35%, 96% 35%, 96% 100%, 90% 55%,
+    84% 100%, 78% 45%, 72% 90%, 66% 40%,
+    60% 85%, 54% 50%, 48% 95%, 42% 40%,
+    36% 90%, 30% 55%, 24% 100%, 18% 45%,
+    12% 85%, 6% 50%, 0% 40%
+  );
+  opacity: .8;
+}
+
+.lore-panel{
+  max-width: 720px;
+  margin: 0 auto;
+  padding: clamp(2rem, 6vw, 3.5rem) clamp(1.25rem, 5vw, 2rem) clamp(4rem, 10vw, 6rem);
+}
+
+.gothic-footer{
+  text-align: center;
+  padding: 2.5rem 1.25rem 3rem;
+  color: var(--bone-dim);
+  font-family: var(--font-pixel);
+  font-size: .6rem;
+  letter-spacing: .05em;
 }

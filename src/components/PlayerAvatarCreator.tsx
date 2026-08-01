@@ -17,7 +17,7 @@ function hash(str: string): number {
   return Math.abs(h);
 }
 
-function pick<T>(seedStr: string, arr: T[], salt = ""): T {
+function pick<T>(seedStr: string, arr: readonly T[], salt = ""): T {
   return arr[hash(seedStr + salt) % arr.length];
 }
 

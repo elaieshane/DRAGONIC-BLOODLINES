@@ -22,5 +22,12 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "dist",
+    "node_modules",
+    "public",
+    "INTEGRATION_GUIDE.ts",
+    "src/components/FlameBearLine.jsx"
+  ]
 }
