@@ -1,9 +1,17 @@
+import gameplayMusic1 from '../assets/audio/gameplay_music_1.flac';
+import gameplayMusic2 from '../assets/audio/gameplay_music_2.flac';
+import gameplayMusic3 from '../assets/audio/gameplay_music_3.flac';
+import gameplayMusic4 from '../assets/audio/gameplay_music_4.flac';
+import bossMusic from '../assets/audio/boss_music.flac';
+import victoryMusic from '../assets/audio/bloodmoon_rises_music.flac';
+
 // Procedural retro sound generator using Web Audio API
 
 let audioCtx: AudioContext | null = null;
+let bgmAudio: HTMLAudioElement | null = null;
 let bgmInterval: number | null = null;
 let currentBgmNodes: AudioNode[] = [];
-let bgmTheme: 'explore' | 'boss' | 'victory' | 'none' = 'none';
+let bgmTheme: 'gameplay' | 'explore' | 'boss' | 'victory' | 'none' = 'none';
 let bgmVolumeNode: GainNode | null = null;
 let masterVolume = 0.3; // Default master volume
 
@@ -21,6 +29,9 @@ export function setVolume(volume: number) {
   masterVolume = Math.max(0, Math.min(1, volume));
   if (bgmVolumeNode) {
     bgmVolumeNode.gain.setValueAtTime(masterVolume * 0.4, audioCtx ? audioCtx.currentTime : 0);
+  }
+  if (bgmAudio) {
+    bgmAudio.volume = masterVolume * 0.4;
   }
 }
 
@@ -259,6 +270,11 @@ export function stopBGM() {
     window.clearInterval(bgmInterval);
     bgmInterval = null;
   }
+  if (bgmAudio) {
+    bgmAudio.pause();
+    bgmAudio.currentTime = 0;
+    bgmAudio = null;
+  }
   currentBgmNodes.forEach(node => {
     try {
       (node as any).stop();
@@ -268,12 +284,31 @@ export function stopBGM() {
   bgmTheme = 'none';
 }
 
-export function startBGM(theme: 'explore' | 'boss' | 'victory') {
+export function startBGM(theme: 'gameplay' | 'explore' | 'boss' | 'victory') {
   if (bgmTheme === theme) return; // Already playing
   stopBGM();
   bgmTheme = theme;
 
   try {
+    if (theme === 'gameplay' || theme === 'boss' || theme === 'victory') {
+      const tracks = [gameplayMusic1, gameplayMusic2, gameplayMusic3, gameplayMusic4];
+      const source = theme === 'boss'
+        ? bossMusic
+        : theme === 'victory'
+        ? victoryMusic
+        : tracks[Math.floor(Math.random() * tracks.length)];
+
+      if (bgmAudio) {
+        bgmAudio.pause();
+        bgmAudio.currentTime = 0;
+      }
+      bgmAudio = new Audio(source);
+      bgmAudio.loop = true;
+      bgmAudio.volume = masterVolume * 0.4;
+      bgmAudio.play().catch(() => {});
+      return;
+    }
+
     const ctx = getAudioContext();
     if (!bgmVolumeNode) {
       bgmVolumeNode = ctx.createGain();

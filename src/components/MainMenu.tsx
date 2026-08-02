@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PlayerClass, PlayerStats, Item, PlayerCustomization } from '../types';
-import { playSound, startBGM } from './SoundEffects';
+import { playSound } from './SoundEffects';
 import CharacterVisualizer from './CharacterVisualizer';
 import { 
   Shield, Sword, Heart, Zap, Flame, Sparkles, Volume2, VolumeX, Settings, 
@@ -10,6 +10,15 @@ import {
 
 import mainBannerImg from '../assets/images/gothic_main_banner_1783099342203.jpg';
 import mapImg from '../assets/images/map.png';
+import ashWingedChimeraImg from '../assets/images/ash_winged_chimera.jpg';
+import beastbloodFiendImg from '../assets/images/beastblood_fiend.jpg';
+import dragonicCultistImg from '../assets/images/dragonic_cultist.jpg';
+import gravebornDragunImg from '../assets/images/graveborn_dragun.jpg';
+import shadowWerewolfImg from '../assets/images/shadow_werewolf.jpg';
+import skeletonGuardImg from '../assets/images/skeleton_guard.jpg';
+import smeltBatImg from '../assets/images/smelt_bat.jpg';
+import smelterGiantImg from '../assets/images/smelter_giant.jpg';
+import vampireLordImg from '../assets/images/vampire_lord.jpg';
 
 interface MainMenuProps {
   onStartGame: (selectedClass: PlayerClass, customization: PlayerCustomization, selectedKingdom?: number) => void;
@@ -24,8 +33,6 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
   const [selectedKingdom, setSelectedKingdom] = useState<number>(1);
   const [volume, setVolume] = useState<number>(0.3);
   const [muted, setMuted] = useState<boolean>(false);
-  const [startedBgm, setStartedBgm] = useState<boolean>(false);
-
   // Customization States
   const [gender, setGender] = useState<'Male' | 'Female' | 'Ethereal'>('Male');
   const [hairStyle, setHairStyle] = useState<string>('Slayer Hood');
@@ -706,10 +713,6 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
       setStartingPerk(defaultValues.startingPerk);
     }
 
-    if (!startedBgm) {
-      startBGM('explore');
-      setStartedBgm(true);
-    }
   };
 
   const toggleSound = () => {
@@ -719,10 +722,6 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
       playSound('hit');
     } else {
       playSound('levelup');
-      if (!startedBgm) {
-        startBGM('explore');
-        setStartedBgm(true);
-      }
     }
   };
 
@@ -822,6 +821,19 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
   };
 
   // Safe Hub NPCs
+  const monsterImages: Record<string, string> = {
+    skeleton_king: skeletonGuardImg,
+    vamp_lord: vampireLordImg,
+    chimera_beast: ashWingedChimeraImg,
+    smelter_giant: smelterGiantImg,
+    grave_dragun: gravebornDragunImg,
+    crypt_bat: smeltBatImg,
+    skeletal_guard: skeletonGuardImg,
+    blood_fiend: beastbloodFiendImg,
+    drag_cultist: dragonicCultistImg,
+    werewolf: shadowWerewolfImg,
+  };
+
   const hubNPCs = [
     { name: 'Blacksmith Korvan', icon: '🔨', role: 'Reforges Melee Blades', desc: 'Can increase your Strength stats in exchange for heavy metal ore found in chests.' },
     { name: 'Priest Zacharias', icon: '⛪', role: 'Purifies Corruption', desc: 'Sells holy water that grants temporary defense shields during combat.' },

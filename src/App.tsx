@@ -601,7 +601,7 @@ export default function App() {
     setScreen('playing');
     setIsPaused(false);
     setHasSaveFile(true);
-    startBGM(restoredFloor >= 4 ? 'boss' : 'explore');
+    startBGM(restoredFloor >= 4 ? 'boss' : 'gameplay');
   };
 
   const handleDescend = () => {
@@ -626,7 +626,7 @@ export default function App() {
       }));
 
       setScreen('playing');
-      startBGM('explore');
+      startBGM('gameplay');
     }, 2200);
   };
 
@@ -682,7 +682,7 @@ export default function App() {
       if (nextFloorIndex === 4 || nextFloorIndex === 5) {
         startBGM('boss');
       } else {
-        startBGM('explore');
+        startBGM('gameplay');
       }
     }, 2200);
   };
