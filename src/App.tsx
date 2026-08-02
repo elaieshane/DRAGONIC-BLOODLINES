@@ -980,6 +980,7 @@ export default function App() {
           onStartGame={handleStartGame} 
           onOpenSettings={() => setIsSettingsOpen(true)}
           onContinueGame={handleContinueGame}
+          onEnterNight={() => setScreen('intro')}
           hasSave={hasSaveFile}
         />
       )}

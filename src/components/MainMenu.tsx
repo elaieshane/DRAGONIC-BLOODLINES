@@ -24,10 +24,11 @@ interface MainMenuProps {
   onStartGame: (selectedClass: PlayerClass, customization: PlayerCustomization, selectedKingdom?: number) => void;
   onOpenSettings: () => void;
   onContinueGame?: () => void;
+  onEnterNight: () => void;
   hasSave?: boolean;
 }
 
-export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, hasSave }: MainMenuProps) {
+export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, onEnterNight, hasSave }: MainMenuProps) {
   const [activeTab, setActiveTab] = useState<'champions' | 'inventory' | 'abilities' | 'crypts' | 'bestiary' | 'quests' | 'map' | 'settings'>('champions');
   const [selectedClass, setSelectedClass] = useState<PlayerClass>('VampireHunter');
   const [selectedKingdom, setSelectedKingdom] = useState<number>(1);
@@ -1016,6 +1017,7 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
                   startBGM('explore');
                   setStartedBgm(true);
                   setIsEntryScreen(false);
+                  onEnterNight();
                 }}
                 className="w-full py-4 px-8 bg-zinc-900 hover:bg-zinc-800 border-2 border-zinc-500 hover:border-zinc-300 text-zinc-200 text-sm font-serif uppercase tracking-[0.25em] rounded-sm shadow-[0_0_20px_rgba(255,255,255,0.1)] cursor-pointer hover:shadow-[0_0_30px_rgba(255,255,255,0.25)] transition-all hover:scale-[1.02] active:scale-95 animate-pulse"
                 style={{ fontFamily: "'Cinzel Decorative', serif" }}
