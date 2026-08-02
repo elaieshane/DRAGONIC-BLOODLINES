@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PlayerClass, PlayerStats, Item, PlayerCustomization } from '../types';
-import { playSound } from './SoundEffects';
+import { playSound, startBGM } from './SoundEffects';
 import CharacterVisualizer from './CharacterVisualizer';
 import { 
   Shield, Sword, Heart, Zap, Flame, Sparkles, Volume2, VolumeX, Settings, 
@@ -52,6 +52,7 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
   const [selectedItem, setSelectedItem] = useState<string>('weapon');
   const [selectedBestiary, setSelectedBestiary] = useState<string>('vamp_lord');
   const [selectedMapNode, setSelectedMapNode] = useState<string>('crypts');
+  const [startedBgm, setStartedBgm] = useState(false);
 
   const defaultCustomizations: Record<PlayerClass, PlayerCustomization> = {
     VampireHunter: {
@@ -997,34 +998,31 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
 
           {/* Progress Bar & Buttons */}
           <div className="w-full max-w-sm flex flex-col items-center gap-4">
-            {loadingProgress < 100 ? (
-              <div className="w-full">
-                <div className="flex justify-between items-center text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2">
-                  <span>{loadingStatusText}</span>
-                  <span className="text-zinc-300 font-bold">{loadingProgress}%</span>
-                </div>
-                <div className="w-full h-1.5 bg-zinc-950 border border-zinc-800 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-zinc-600 to-zinc-300 shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all duration-150"
-                    style={{ width: `${loadingProgress}%` }}
-                  />
-                </div>
+            <div className="w-full">
+              <div className="flex justify-between items-center text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2">
+                <span>{loadingStatusText}</span>
+                <span className="text-zinc-300 font-bold">{loadingProgress}%</span>
               </div>
-            ) : (
-              <button
-                onClick={() => {
-                  playSound('levelup');
-                  startBGM('explore');
-                  setStartedBgm(true);
-                  setIsEntryScreen(false);
-                  onEnterNight();
-                }}
-                className="w-full py-4 px-8 bg-zinc-900 hover:bg-zinc-800 border-2 border-zinc-500 hover:border-zinc-300 text-zinc-200 text-sm font-serif uppercase tracking-[0.25em] rounded-sm shadow-[0_0_20px_rgba(255,255,255,0.1)] cursor-pointer hover:shadow-[0_0_30px_rgba(255,255,255,0.25)] transition-all hover:scale-[1.02] active:scale-95 animate-pulse"
-                style={{ fontFamily: "'Cinzel Decorative', serif" }}
-              >
-                Enter the Night ☩
-              </button>
-            )}
+              <div className="w-full h-1.5 bg-zinc-950 border border-zinc-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-zinc-600 to-zinc-300 shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all duration-150"
+                  style={{ width: `${loadingProgress}%` }}
+                />
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                playSound('levelup');
+                startBGM('explore');
+                setStartedBgm(true);
+                setIsEntryScreen(false);
+                onEnterNight();
+              }}
+              className="w-full py-4 px-8 bg-zinc-900 hover:bg-zinc-800 border-2 border-zinc-500 hover:border-zinc-300 text-zinc-200 text-sm font-serif uppercase tracking-[0.25em] rounded-sm shadow-[0_0_20px_rgba(255,255,255,0.1)] cursor-pointer hover:shadow-[0_0_30px_rgba(255,255,255,0.25)] transition-all hover:scale-[1.02] active:scale-95 animate-pulse"
+              style={{ fontFamily: "'Cinzel Decorative', serif" }}
+            >
+              Enter the Night ☩
+            </button>
           </div>
         </div>
 
