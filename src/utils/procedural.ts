@@ -114,6 +114,8 @@ export function generateLevel(kingdomIndex: number, floorIndex: number, theme: F
 
     // Stairs Spawn behind boss (initially hidden or locked, we place it in the top corner)
     stairsSpawn = { x: startX + Math.floor(arenaW / 2), y: startY + 2 };
+    grid[stairsSpawn.y][stairsSpawn.x].type = 'Stairs';
+    
     // We also put a chest left and right of the boss arena
     chestSpawns.push({ x: startX + 3, y: startY + 3 });
     chestSpawns.push({ x: startX + arenaW - 4, y: startY + 3 });
