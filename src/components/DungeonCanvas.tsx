@@ -751,25 +751,32 @@ export default function DungeonCanvas({
       setBossIntroLineIndex(0);
     }
 
-    // Pre-explore spawn area immediately using level spawn coordinates
-    hasPreRevealedRef.current = true;
-    const spawnTileX = level.playerSpawn.x;
-    const spawnTileY = level.playerSpawn.y;
-    const preRevealRadius = 12;
-    for (let dy = -preRevealRadius; dy <= preRevealRadius; dy++) {
-      for (let dx = -preRevealRadius; dx <= preRevealRadius; dx++) {
-        const tx = spawnTileX + dx;
-        const ty = spawnTileY + dy;
-        if (tx >= 0 && tx < level.width && ty >= 0 && ty < level.height) {
-          level.grid[ty][tx].explored = true;
+    // Pre-explore spawn area immediately using level spawn coordinates, but only once per generated level.
+    if (!hasPreRevealedRef.current) {
+      hasPreRevealedRef.current = true;
+      const spawnTileX = level.playerSpawn.x;
+      const spawnTileY = level.playerSpawn.y;
+      const preRevealRadius = 12;
+      for (let dy = -preRevealRadius; dy <= preRevealRadius; dy++) {
+        for (let dx = -preRevealRadius; dx <= preRevealRadius; dx++) {
+          const tx = spawnTileX + dx;
+          const ty = spawnTileY + dy;
+          if (tx >= 0 && tx < level.width && ty >= 0 && ty < level.height) {
+            level.grid[ty][tx].explored = true;
+          }
         }
       }
+      setLevel({ ...level });
+      cameraRef.current = {
+        x: spawnTileX * 32 - dimensions.width / 2,
+        y: spawnTileY * 32 - dimensions.height / 2,
+      };
+    } else {
+      cameraRef.current = {
+        x: level.playerSpawn.x * 32 - dimensions.width / 2,
+        y: level.playerSpawn.y * 32 - dimensions.height / 2,
+      };
     }
-    setLevel({ ...level });
-    cameraRef.current = {
-      x: spawnTileX * 32 - dimensions.width / 2,
-      y: spawnTileY * 32 - dimensions.height / 2,
-    };
 
     // Spawn companions if unlocked
     const companions: CompanionEntity[] = [];
@@ -3690,6 +3697,9 @@ export default function DungeonCanvas({
   return (
     <div 
       ref={containerRef} 
+      tabIndex={0}
+      aria-label="Dungeon game canvas. Click to focus keyboard controls."
+      onClick={() => containerRef.current?.focus()}
       className="relative w-full h-full min-h-[400px] rounded-xl border border-red-950/40 bg-zinc-950 overflow-hidden shadow-2xl flex flex-col justify-between"
     >
       {/* Visual filter shaders inside canvas area */}
