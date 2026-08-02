@@ -45,6 +45,171 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
   const [selectedBestiary, setSelectedBestiary] = useState<string>('vamp_lord');
   const [selectedMapNode, setSelectedMapNode] = useState<string>('crypts');
 
+  const defaultCustomizations: Record<PlayerClass, PlayerCustomization> = {
+    VampireHunter: {
+      gender: 'Male',
+      hairStyle: 'Slayer Hood',
+      hairColor: '#18181b',
+      skinColor: '#f5f5f4',
+      eyeColor: '#fbbf24',
+      capeColor: '#1e3a8a',
+      startingPerk: 'Blood Pact'
+    },
+    RenegadeVampire: {
+      gender: 'Male',
+      hairStyle: 'Renegade Locks',
+      hairColor: '#ef4444',
+      skinColor: '#cbd5e1',
+      eyeColor: '#ef4444',
+      capeColor: '#991b1b',
+      startingPerk: 'Blood Pact'
+    },
+    DraconicKnight: {
+      gender: 'Male',
+      hairStyle: 'Knight Helmet',
+      hairColor: '#fbbf24',
+      skinColor: '#cbd5e1',
+      eyeColor: '#ea580c',
+      capeColor: '#78350f',
+      startingPerk: 'Draconic Scales'
+    },
+    ElvenRanger: {
+      gender: 'Female',
+      hairStyle: 'Forest Antlers',
+      hairColor: '#e2e8f0',
+      skinColor: '#f5f5f4',
+      eyeColor: '#38bdf8',
+      capeColor: '#064e3b',
+      startingPerk: 'Fleet Foot'
+    },
+    OrcBerserker: {
+      gender: 'Male',
+      hairStyle: 'Iron Warhawk',
+      hairColor: '#18181b',
+      skinColor: '#86a35f',
+      eyeColor: '#fbbf24',
+      capeColor: '#3f6212',
+      startingPerk: 'Blood Pact'
+    },
+    ArcaneSorceress: {
+      gender: 'Female',
+      hairStyle: 'Starfall Braids',
+      hairColor: '#a855f7',
+      skinColor: '#f5f5f4',
+      eyeColor: '#a855f7',
+      capeColor: '#4c1d95',
+      startingPerk: 'Arcane Spark'
+    },
+    Necromancer: {
+      gender: 'Ethereal',
+      hairStyle: 'Necro Cowl',
+      hairColor: '#f8fafc',
+      skinColor: '#cbd5e1',
+      eyeColor: '#7c3aed',
+      capeColor: '#0f172a',
+      startingPerk: 'Arcane Spark'
+    },
+    ShadowAssassin: {
+      gender: 'Male',
+      hairStyle: 'Shadow Shroud',
+      hairColor: '#111827',
+      skinColor: '#d1d5db',
+      eyeColor: '#fcd34d',
+      capeColor: '#0f172a',
+      startingPerk: 'Fleet Foot'
+    },
+    StormWarden: {
+      gender: 'Male',
+      hairStyle: 'Storm Crest',
+      hairColor: '#60a5fa',
+      skinColor: '#e2e8f0',
+      eyeColor: '#38bdf8',
+      capeColor: '#0ea5e9',
+      startingPerk: 'Arcane Spark'
+    },
+    FallenPaladin: {
+      gender: 'Male',
+      hairStyle: 'Templar Braids',
+      hairColor: '#fde68a',
+      skinColor: '#f5f5f4',
+      eyeColor: '#fde047',
+      capeColor: '#7c2d12',
+      startingPerk: 'Blood Pact'
+    },
+    BloodPriest: {
+      gender: 'Female',
+      hairStyle: 'Blood Wreath',
+      hairColor: '#dc2626',
+      skinColor: '#f3f4f6',
+      eyeColor: '#f87171',
+      capeColor: '#641220',
+      startingPerk: 'Blood Pact'
+    },
+    RuneWarlock: {
+      gender: 'Ethereal',
+      hairStyle: 'Rune Veil',
+      hairColor: '#8b5cf6',
+      skinColor: '#e0e7ff',
+      eyeColor: '#c084fc',
+      capeColor: '#312e81',
+      startingPerk: 'Arcane Spark'
+    },
+    FrostRevenant: {
+      gender: 'Male',
+      hairStyle: 'Frost Spikes',
+      hairColor: '#bfdbfe',
+      skinColor: '#e2e8f0',
+      eyeColor: '#93c5fd',
+      capeColor: '#0f172a',
+      startingPerk: 'Draconic Scales'
+    },
+    PhoenixBlade: {
+      gender: 'Male',
+      hairStyle: 'Flame Crest',
+      hairColor: '#f97316',
+      skinColor: '#fde68a',
+      eyeColor: '#facc15',
+      capeColor: '#b45309',
+      startingPerk: 'Draconic Scales'
+    },
+    AbyssalSeer: {
+      gender: 'Female',
+      hairStyle: 'Abyss Veil',
+      hairColor: '#0f172a',
+      skinColor: '#d1d5db',
+      eyeColor: '#c084fc',
+      capeColor: '#3f3cbb',
+      startingPerk: 'Arcane Spark'
+    },
+    IronSentinel: {
+      gender: 'Male',
+      hairStyle: 'Iron Helm',
+      hairColor: '#a8a29e',
+      skinColor: '#cbd5e1',
+      eyeColor: '#fbbf24',
+      capeColor: '#52525b',
+      startingPerk: 'Blood Pact'
+    },
+    SpiritHunter: {
+      gender: 'Ethereal',
+      hairStyle: 'Spirit Plume',
+      hairColor: '#7dd3fc',
+      skinColor: '#f8fafc',
+      eyeColor: '#ecfccb',
+      capeColor: '#0f766e',
+      startingPerk: 'Fleet Foot'
+    },
+    SoulBard: {
+      gender: 'Female',
+      hairStyle: 'Songweaver',
+      hairColor: '#f9a8d4',
+      skinColor: '#fdf2f8',
+      eyeColor: '#e879f9',
+      capeColor: '#be185d',
+      startingPerk: 'Arcane Spark'
+    }
+  };
+
   const classesConfig = {
     VampireHunter: {
       name: 'Vampire Hunter',
@@ -190,6 +355,294 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
         lore: 'A battle dress embroidered with protective constellations.'
       }
     },
+    Necromancer: {
+      name: 'Necromancer',
+      title: 'Harbinger of Bones',
+      desc: 'A master of the dead who bends skeletal armies and cursed blood to weaken foes before the final strike.',
+      stats: { strength: 8, agility: 10, arcane: 22, vitality: 10 },
+      color: 'text-slate-300 border-slate-950 bg-slate-950/20',
+      weapon: 'Necromantic Tome (Bone Burst)',
+      armor: 'Boneguard Vestments (Soul Ward)',
+      sigil: '☠️',
+      hp: 142,
+      mp: 122,
+      weaponItem: {
+        name: 'Necromantic Tome',
+        rarity: 'Epic' as const,
+        stats: '+16 Damage, +10 Arcane, +5 Mana Regen',
+        lore: 'A book bound in preserved skin that whispers names of the forgotten dead.'
+      },
+      armorItem: {
+        name: 'Boneguard Vestments',
+        rarity: 'Rare' as const,
+        stats: '+4 Defense, +6 Vitality, +8 HP',
+        lore: 'Whispering bone plates etched with necrotic glyphs.'
+      }
+    },
+    ShadowAssassin: {
+      name: 'Shadow Assassin',
+      title: 'Nightfall Blade',
+      desc: 'A silent killer who slips between shadows, striking from the dark with poisoned daggers and crippling agility.',
+      stats: { strength: 13, agility: 22, arcane: 9, vitality: 10 },
+      color: 'text-zinc-100 border-zinc-950 bg-zinc-950/20',
+      weapon: 'Dusk Daggers (Shadow Frenzy)',
+      armor: 'Silenced Leathers (Ghoststep)',
+      sigil: '🗡️',
+      hp: 134,
+      mp: 82,
+      weaponItem: {
+        name: 'Dusk Daggers',
+        rarity: 'Rare' as const,
+        stats: '+19 Damage, +8 Agility, +5 Crit',
+        lore: 'Twin blades dipped in venom that never reflect a torch flame.'
+      },
+      armorItem: {
+        name: 'Silenced Leathers',
+        rarity: 'Rare' as const,
+        stats: '+3 Defense, +9 Agility, +10 HP',
+        lore: 'A suit of black leather that seems to drink in the sound of your steps.'
+      }
+    },
+    StormWarden: {
+      name: 'Storm Warden',
+      title: 'Tempest Guardian',
+      desc: 'A sky-born sentinel wielding thunder and lightning, controlling the battlefield with weather-magic and massive halberd strikes.',
+      stats: { strength: 15, agility: 13, arcane: 17, vitality: 11 },
+      color: 'text-cyan-300 border-cyan-950 bg-cyan-950/20',
+      weapon: 'Tempest Halberd (Lightning Sweep)',
+      armor: 'Cloudsteel Plate (Storm Barrier)',
+      sigil: '⛈️',
+      hp: 150,
+      mp: 98,
+      weaponItem: {
+        name: 'Tempest Halberd',
+        rarity: 'Rare' as const,
+        stats: '+21 Damage, +5 Agility, +6 Arcane',
+        lore: 'A halberd forged in the eye of a thunderstorm and tempered with storm iron.'
+      },
+      armorItem: {
+        name: 'Cloudsteel Plate',
+        rarity: 'Rare' as const,
+        stats: '+6 Defense, +5 Vitality, +10 HP',
+        lore: 'Heavy plate glazed with storm-forged runes that crackle when struck.'
+      }
+    },
+    FallenPaladin: {
+      name: 'Fallen Paladin',
+      title: 'Oathbreaker Knight',
+      desc: 'A once-holy warrior corrupted by bloodlust, using devastating holy-turned-dark strikes and sacrificial healing curses.',
+      stats: { strength: 18, agility: 11, arcane: 12, vitality: 14 },
+      color: 'text-amber-300 border-amber-950 bg-amber-950/20',
+      weapon: 'Oathbreaker Blade (Judgment Slash)',
+      armor: 'Blighted Plate (Cursed Aegis)',
+      sigil: '✝️',
+      hp: 158,
+      mp: 92,
+      weaponItem: {
+        name: 'Oathbreaker Blade',
+        rarity: 'Epic' as const,
+        stats: '+23 Damage, +6 Strength, +4 Arcane',
+        lore: 'A once-holy sword now stained with the blood of the fallen.'
+      },
+      armorItem: {
+        name: 'Blighted Plate',
+        rarity: 'Epic' as const,
+        stats: '+7 Defense, +5 Vitality, +8 HP',
+        lore: 'Plate armor fused with dark pacts and holy iron.'
+      }
+    },
+    BloodPriest: {
+      name: 'Blood Priest',
+      title: 'Crimson Orator',
+      desc: 'A sinister cleric who commands blood magic and sacrificial rites to weaken enemies and sustain their cult.',
+      stats: { strength: 9, agility: 10, arcane: 20, vitality: 13 },
+      color: 'text-rose-300 border-rose-950 bg-rose-950/20',
+      weapon: 'Hemomancer Scepter (Crimson Chant)',
+      armor: 'Sacred Veils (Life Leech)',
+      sigil: '♱',
+      hp: 146,
+      mp: 118,
+      weaponItem: {
+        name: 'Hemomancer Scepter',
+        rarity: 'Rare' as const,
+        stats: '+15 Damage, +8 Arcane, +5 Lifesteal',
+        lore: 'A scepter encrusted with ruby shards pulsing with every heart beat.'
+      },
+      armorItem: {
+        name: 'Sacred Veils',
+        rarity: 'Rare' as const,
+        stats: '+4 Defense, +7 Arcane, +10 HP',
+        lore: 'Flowing ceremonial robes soaked in ancient blood runes.'
+      }
+    },
+    RuneWarlock: {
+      name: 'Rune Warlock',
+      title: 'Glyph Weaver',
+      desc: 'A sorcerer who channels runic power from stone and ether, shaping devastating sigils that punish those who step into their traps.',
+      stats: { strength: 9, agility: 12, arcane: 22, vitality: 11 },
+      color: 'text-violet-300 border-violet-950 bg-violet-950/20',
+      weapon: 'Rune Staff (Elder Sigils)',
+      armor: 'Glyphwoven Robes (Rune Ward)',
+      sigil: '☥',
+      hp: 144,
+      mp: 124,
+      weaponItem: {
+        name: 'Rune Staff',
+        rarity: 'Epic' as const,
+        stats: '+16 Damage, +10 Arcane, +8 Mana',
+        lore: 'A staff carved with ancient runes that glow when spoken aloud.'
+      },
+      armorItem: {
+        name: 'Glyphwoven Robes',
+        rarity: 'Rare' as const,
+        stats: '+4 Defense, +7 Arcane, +12 HP',
+        lore: 'Robes threaded with sigils that shimmer when danger is near.'
+      }
+    },
+    FrostRevenant: {
+      name: 'Frost Revenant',
+      title: 'Winter Wraith',
+      desc: 'A spectral warrior risen from icy tombs, wielding frozen polearms and chilling auras that slow entire rooms.',
+      stats: { strength: 15, agility: 10, arcane: 15, vitality: 13 },
+      color: 'text-sky-200 border-sky-950 bg-sky-950/20',
+      weapon: 'Glacial Pike (Winter’s Grasp)',
+      armor: 'Icebound Shroud (Frost Shell)',
+      sigil: '❄️',
+      hp: 152,
+      mp: 104,
+      weaponItem: {
+        name: 'Glacial Pike',
+        rarity: 'Rare' as const,
+        stats: '+20 Damage, +5 Strength, +5 Arcane',
+        lore: 'A long polearm formed from everlasting ice and bound with bone.'
+      },
+      armorItem: {
+        name: 'Icebound Shroud',
+        rarity: 'Rare' as const,
+        stats: '+5 Defense, +6 Vitality, +12 HP',
+        lore: 'A cold shroud that freezes the air around the wearer.'
+      }
+    },
+    PhoenixBlade: {
+      name: 'Phoenix Blade',
+      title: 'Ember Reclaimer',
+      desc: 'A fiery warrior reborn from ashes, combining blazing swordplay with phoenix flame regeneration.',
+      stats: { strength: 16, agility: 12, arcane: 14, vitality: 13 },
+      color: 'text-orange-300 border-orange-950 bg-orange-950/20',
+      weapon: 'Emberblade (Rebirth Slash)',
+      armor: 'Ashen Plate (Phoenix Guard)',
+      sigil: '🔥',
+      hp: 154,
+      mp: 106,
+      weaponItem: {
+        name: 'Emberblade',
+        rarity: 'Epic' as const,
+        stats: '+22 Damage, +6 Strength, +5 Fire Damage',
+        lore: 'A blade forged in phoenix ash, reigniting each dusk.'
+      },
+      armorItem: {
+        name: 'Ashen Plate',
+        rarity: 'Rare' as const,
+        stats: '+6 Defense, +5 Vitality, +10 HP',
+        lore: 'Plate armor charred by immortality fires.'
+      }
+    },
+    AbyssalSeer: {
+      name: 'Abyssal Seer',
+      title: 'Void Oracle',
+      desc: 'A glimpse into the abyss, summoning dark visions and ominous void bolts to unravel enemy defences.',
+      stats: { strength: 9, agility: 11, arcane: 23, vitality: 10 },
+      color: 'text-slate-200 border-slate-950 bg-slate-950/20',
+      weapon: 'Abyssal Orb (Void Pulse)',
+      armor: 'Nightmare Shroud (Inner Void)',
+      sigil: '🌑',
+      hp: 140,
+      mp: 126,
+      weaponItem: {
+        name: 'Abyssal Orb',
+        rarity: 'Epic' as const,
+        stats: '+17 Damage, +11 Arcane, +10 Mana Regen',
+        lore: 'A floating orb that contains a fragment of the abyss itself.'
+      },
+      armorItem: {
+        name: 'Nightmare Shroud',
+        rarity: 'Epic' as const,
+        stats: '+4 Defense, +8 Arcane, +10 HP',
+        lore: 'A shroud woven from shadows and nightmares.'
+      }
+    },
+    IronSentinel: {
+      name: 'Iron Sentinel',
+      title: 'Fortress Warden',
+      desc: 'A mechanical juggernaut clad in iron, absorbing blows and punishing attackers with heavy counter-strikes.',
+      stats: { strength: 19, agility: 8, arcane: 8, vitality: 18 },
+      color: 'text-stone-300 border-stone-950 bg-stone-950/20',
+      weapon: 'Ruin Hammer (Shield Crush)',
+      armor: 'Ironbound Carapace (Enduring Bastion)',
+      sigil: '⛨',
+      hp: 168,
+      mp: 88,
+      weaponItem: {
+        name: 'Ruin Hammer',
+        rarity: 'Rare' as const,
+        stats: '+26 Damage, +7 Strength, +3 Defense',
+        lore: 'A massive hammer built to collapse walls and skulls alike.'
+      },
+      armorItem: {
+        name: 'Ironbound Carapace',
+        rarity: 'Rare' as const,
+        stats: '+8 Defense, +5 Vitality, +15 HP',
+        lore: 'Heavy plates fused into a single unbreakable shell.'
+      }
+    },
+    SpiritHunter: {
+      name: 'Spirit Hunter',
+      title: 'Wraith Tracker',
+      desc: 'A seeker of lost souls who hunts spirits across planes, armed with a spectral bow and ghostly perception.',
+      stats: { strength: 10, agility: 18, arcane: 15, vitality: 10 },
+      color: 'text-teal-300 border-teal-950 bg-teal-950/20',
+      weapon: 'Spectral Bow (Wraith Shot)',
+      armor: 'Phantom Mantle (Soul Veil)',
+      sigil: '👁️',
+      hp: 140,
+      mp: 108,
+      weaponItem: {
+        name: 'Spectral Bow',
+        rarity: 'Rare' as const,
+        stats: '+18 Damage, +9 Agility, +5 Arcane',
+        lore: 'A bow inlaid with ghostly sinew that fires arrows of pure spirit.'
+      },
+      armorItem: {
+        name: 'Phantom Mantle',
+        rarity: 'Rare' as const,
+        stats: '+4 Defense, +6 Agility, +10 HP',
+        lore: 'A mantle woven from phantom threads and quiet breath.'
+      }
+    },
+    SoulBard: {
+      name: 'Soul Bard',
+      title: 'Dirge Singer',
+      desc: 'A haunting minstrel who turns melodies into cursed songs that both empower allies and weaken foes.',
+      stats: { strength: 9, agility: 14, arcane: 18, vitality: 11 },
+      color: 'text-fuchsia-300 border-fuchsia-950 bg-fuchsia-950/20',
+      weapon: 'Lament Harp (Soul Chorus)',
+      armor: 'Ballad Robes (Harmony Ward)',
+      sigil: '🎵',
+      hp: 142,
+      mp: 116,
+      weaponItem: {
+        name: 'Lament Harp',
+        rarity: 'Rare' as const,
+        stats: '+15 Damage, +7 Arcane, +8 Mana Regen',
+        lore: 'A harp carved from a mourning tree, tuned to the cries of the dead.'
+      },
+      armorItem: {
+        name: 'Ballad Robes',
+        rarity: 'Rare' as const,
+        stats: '+3 Defense, +8 Arcane, +10 HP',
+        lore: 'Robes that hum softly with ancient songs of power.'
+      }
+    }
   };
 
   const handleClassSelect = (cls: PlayerClass) => {
@@ -242,6 +695,15 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
       setEyeColor('#a855f7');
       setCapeColor('#4c1d95');
       setStartingPerk('Arcane Spark');
+    } else {
+      const defaultValues = defaultCustomizations[cls];
+      setGender(defaultValues.gender);
+      setHairStyle(defaultValues.hairStyle);
+      setHairColor(defaultValues.hairColor);
+      setSkinColor(defaultValues.skinColor);
+      setEyeColor(defaultValues.eyeColor);
+      setCapeColor(defaultValues.capeColor);
+      setStartingPerk(defaultValues.startingPerk);
     }
 
     if (!startedBgm) {
@@ -310,6 +772,18 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
       ElvenRanger: 'ER',
       OrcBerserker: 'OB',
       ArcaneSorceress: 'AS',
+      Necromancer: '☠️',
+      ShadowAssassin: '🗡️',
+      StormWarden: '⛈️',
+      FallenPaladin: '✝️',
+      BloodPriest: '♱',
+      RuneWarlock: '☥',
+      FrostRevenant: '❄️',
+      PhoenixBlade: '🔥',
+      AbyssalSeer: '🌑',
+      IronSentinel: '⛨',
+      SpiritHunter: '👁️',
+      SoulBard: '🎵',
     };
     return sigils[cls];
   };
@@ -322,6 +796,18 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
       ElvenRanger: 'Moonwood Bow',
       OrcBerserker: 'War Axe',
       ArcaneSorceress: 'Astral Staff',
+      Necromancer: 'Necromantic Grimoire',
+      ShadowAssassin: 'Dusk Daggers',
+      StormWarden: 'Tempest Halberd',
+      FallenPaladin: 'Oathbreaker Blade',
+      BloodPriest: 'Hemomancer Scepter',
+      RuneWarlock: 'Rune Staff',
+      FrostRevenant: 'Glacial Pike',
+      PhoenixBlade: 'Emberblade',
+      AbyssalSeer: 'Abyssal Orb',
+      IronSentinel: 'Ruin Hammer',
+      SpiritHunter: 'Spectral Bow',
+      SoulBard: 'Lament Harp',
     };
     return weapons[cls];
   };

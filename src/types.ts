@@ -84,7 +84,25 @@ export interface Pet {
   };
 }
 
-export type PlayerClass = 'VampireHunter' | 'RenegadeVampire' | 'DraconicKnight' | 'ElvenRanger' | 'OrcBerserker' | 'ArcaneSorceress';
+export type PlayerClass =
+  | 'VampireHunter'
+  | 'RenegadeVampire'
+  | 'DraconicKnight'
+  | 'ElvenRanger'
+  | 'OrcBerserker'
+  | 'ArcaneSorceress'
+  | 'Necromancer'
+  | 'ShadowAssassin'
+  | 'StormWarden'
+  | 'FallenPaladin'
+  | 'BloodPriest'
+  | 'RuneWarlock'
+  | 'FrostRevenant'
+  | 'PhoenixBlade'
+  | 'AbyssalSeer'
+  | 'IronSentinel'
+  | 'SpiritHunter'
+  | 'SoulBard';
 
 export interface PlayerCustomization {
   gender: 'Male' | 'Female' | 'Ethereal';

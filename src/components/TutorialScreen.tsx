@@ -21,9 +21,25 @@ export default function TutorialScreen({ playerClass, onDescend }: TutorialScree
 
   const getClassNameText = () => {
     switch(playerClass) {
+      case 'VampireHunter': return 'Vampire Hunter 🛡️';
       case 'RenegadeVampire': return 'Renegade Vampire 🩸';
       case 'DraconicKnight': return 'Draconic Knight 🔥';
-      default: return 'Vampire Hunter 🛡️';
+      case 'ElvenRanger': return 'Elven Ranger 🌙';
+      case 'OrcBerserker': return 'Orc Berserker 🪓';
+      case 'ArcaneSorceress': return 'Arcane Sorceress ✨';
+      case 'Necromancer': return 'Necromancer ☠️';
+      case 'ShadowAssassin': return 'Shadow Assassin 🗡️';
+      case 'StormWarden': return 'Storm Warden ⛈️';
+      case 'FallenPaladin': return 'Fallen Paladin ✝️';
+      case 'BloodPriest': return 'Blood Priest ♱';
+      case 'RuneWarlock': return 'Rune Warlock ☥';
+      case 'FrostRevenant': return 'Frost Revenant ❄️';
+      case 'PhoenixBlade': return 'Phoenix Blade 🔥';
+      case 'AbyssalSeer': return 'Abyssal Seer 🌑';
+      case 'IronSentinel': return 'Iron Sentinel ⛨';
+      case 'SpiritHunter': return 'Spirit Hunter 👁️';
+      case 'SoulBard': return 'Soul Bard 🎵';
+      default: return 'Champion of Blood';
     }
   };
 

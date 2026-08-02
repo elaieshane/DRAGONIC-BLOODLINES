@@ -136,6 +136,30 @@ export default function App() {
       stats = { strength: 21, agility: 7, arcane: 5, vitality: 17 };
     } else if (selectedClass === 'ArcaneSorceress') {
       stats = { strength: 8, agility: 12, arcane: 21, vitality: 9 };
+    } else if (selectedClass === 'Necromancer') {
+      stats = { strength: 8, agility: 10, arcane: 22, vitality: 10 };
+    } else if (selectedClass === 'ShadowAssassin') {
+      stats = { strength: 13, agility: 22, arcane: 9, vitality: 10 };
+    } else if (selectedClass === 'StormWarden') {
+      stats = { strength: 15, agility: 13, arcane: 17, vitality: 11 };
+    } else if (selectedClass === 'FallenPaladin') {
+      stats = { strength: 18, agility: 11, arcane: 12, vitality: 14 };
+    } else if (selectedClass === 'BloodPriest') {
+      stats = { strength: 9, agility: 10, arcane: 20, vitality: 13 };
+    } else if (selectedClass === 'RuneWarlock') {
+      stats = { strength: 9, agility: 12, arcane: 22, vitality: 11 };
+    } else if (selectedClass === 'FrostRevenant') {
+      stats = { strength: 15, agility: 10, arcane: 15, vitality: 13 };
+    } else if (selectedClass === 'PhoenixBlade') {
+      stats = { strength: 16, agility: 12, arcane: 14, vitality: 13 };
+    } else if (selectedClass === 'AbyssalSeer') {
+      stats = { strength: 9, agility: 11, arcane: 23, vitality: 10 };
+    } else if (selectedClass === 'IronSentinel') {
+      stats = { strength: 19, agility: 8, arcane: 8, vitality: 18 };
+    } else if (selectedClass === 'SpiritHunter') {
+      stats = { strength: 10, agility: 18, arcane: 15, vitality: 10 };
+    } else if (selectedClass === 'SoulBard') {
+      stats = { strength: 9, agility: 14, arcane: 18, vitality: 11 };
     }
 
     const customization: PlayerCustomization = custom || {
@@ -287,6 +311,234 @@ export default function App() {
         description: 'A battle dress embroidered with protective constellations.',
         stats: { defense: 3, arcane: 7, vitality: 12 },
         icon: 'starfall_gown'
+      };
+    } else if (selectedClass === 'Necromancer') {
+      weapon = {
+        id: 'tome_start',
+        name: 'Necromantic Tome',
+        type: 'Weapon',
+        rarity: 'Epic',
+        description: 'A cursed book that whispers the names of the long-dead.',
+        stats: { damage: 16, arcane: 10, manaRegen: 1 },
+        icon: 'tome'
+      };
+      armor = {
+        id: 'boneguard_start',
+        name: 'Boneguard Vestments',
+        type: 'Armor',
+        rarity: 'Rare',
+        description: 'Bone armor that protects the wearer with necrotic wards.',
+        stats: { defense: 4, vitality: 8, arcane: 4 },
+        icon: 'bone_armor'
+      };
+    } else if (selectedClass === 'ShadowAssassin') {
+      weapon = {
+        id: 'daggers_start',
+        name: 'Dusk Daggers',
+        type: 'Weapon',
+        rarity: 'Rare',
+        description: 'Twin blades forged in utter darkness for silent kills.',
+        stats: { damage: 19, agility: 8, critChance: 6 },
+        icon: 'daggers'
+      };
+      armor = {
+        id: 'silenced_start',
+        name: 'Silenced Leathers',
+        type: 'Armor',
+        rarity: 'Rare',
+        description: 'Light armor designed for movement and concealment.',
+        stats: { defense: 3, agility: 9, vitality: 10 },
+        icon: 'leather'
+      };
+    } else if (selectedClass === 'StormWarden') {
+      weapon = {
+        id: 'halberd_start',
+        name: 'Tempest Halberd',
+        type: 'Weapon',
+        rarity: 'Rare',
+        description: 'A halberd that channels thunder and lightning with each strike.',
+        stats: { damage: 21, arcane: 6, agility: 5 },
+        icon: 'halberd'
+      };
+      armor = {
+        id: 'cloudsteel_start',
+        name: 'Cloudsteel Plate',
+        type: 'Armor',
+        rarity: 'Rare',
+        description: 'A plate armor strengthened by storm steel and wind wards.',
+        stats: { defense: 6, vitality: 5, agility: 2 },
+        icon: 'plate'
+      };
+    } else if (selectedClass === 'FallenPaladin') {
+      weapon = {
+        id: 'oathbreaker_start',
+        name: 'Oathbreaker Blade',
+        type: 'Weapon',
+        rarity: 'Epic',
+        description: 'A corrupted holy blade that hungers for blood and penance.',
+        stats: { damage: 23, strength: 6, arcane: 4 },
+        icon: 'sword'
+      };
+      armor = {
+        id: 'blighted_start',
+        name: 'Blighted Plate',
+        type: 'Armor',
+        rarity: 'Epic',
+        description: 'Plate armor imbued with jaded divine power and dark protection.',
+        stats: { defense: 7, vitality: 5, arcane: 3 },
+        icon: 'plate'
+      };
+    } else if (selectedClass === 'BloodPriest') {
+      weapon = {
+        id: 'scepter_start',
+        name: 'Hemomancer Scepter',
+        type: 'Weapon',
+        rarity: 'Rare',
+        description: 'A scepter imbued with the power to twist blood into healing and harm.',
+        stats: { damage: 15, arcane: 8, lifesteal: 0.05 },
+        icon: 'scepter'
+      };
+      armor = {
+        id: 'veils_start',
+        name: 'Sacred Veils',
+        type: 'Armor',
+        rarity: 'Rare',
+        description: 'Robes soaked in sacred blood sigils to protect and empower.',
+        stats: { defense: 4, arcane: 7, vitality: 4 },
+        icon: 'robes'
+      };
+    } else if (selectedClass === 'RuneWarlock') {
+      weapon = {
+        id: 'rune_staff_start',
+        name: 'Rune Staff',
+        type: 'Weapon',
+        rarity: 'Epic',
+        description: 'A staff carved with ancient runes that flare when cast.',
+        stats: { damage: 16, arcane: 10, manaRegen: 1 },
+        icon: 'staff'
+      };
+      armor = {
+        id: 'glyphwoven_start',
+        name: 'Glyphwoven Robes',
+        type: 'Armor',
+        rarity: 'Rare',
+        description: 'Robes threaded with glowing runes to fortify spellcasting.',
+        stats: { defense: 4, arcane: 7, vitality: 4 },
+        icon: 'robes'
+      };
+    } else if (selectedClass === 'FrostRevenant') {
+      weapon = {
+        id: 'pike_start',
+        name: 'Glacial Pike',
+        type: 'Weapon',
+        rarity: 'Rare',
+        description: 'A frozen spear that chills and pierces with every blow.',
+        stats: { damage: 20, strength: 5, arcane: 5 },
+        icon: 'pike'
+      };
+      armor = {
+        id: 'icebound_start',
+        name: 'Icebound Shroud',
+        type: 'Armor',
+        rarity: 'Rare',
+        description: 'A cold cloak that hardens like armor when danger approaches.',
+        stats: { defense: 5, vitality: 6, arcane: 3 },
+        icon: 'cloak'
+      };
+    } else if (selectedClass === 'PhoenixBlade') {
+      weapon = {
+        id: 'emberblade_start',
+        name: 'Emberblade',
+        type: 'Weapon',
+        rarity: 'Epic',
+        description: 'A blazing sword that regenerates its wielder with every strike.',
+        stats: { damage: 22, strength: 6, fireDamage: 6 },
+        icon: 'sword'
+      };
+      armor = {
+        id: 'ashen_start',
+        name: 'Ashen Plate',
+        type: 'Armor',
+        rarity: 'Rare',
+        description: 'Charred armor that radiates warmth and resilience.',
+        stats: { defense: 6, vitality: 5, fireDamage: 2 },
+        icon: 'plate'
+      };
+    } else if (selectedClass === 'AbyssalSeer') {
+      weapon = {
+        id: 'orb_start',
+        name: 'Abyssal Orb',
+        type: 'Weapon',
+        rarity: 'Epic',
+        description: 'A dark orb that pulses with the void, tearing at enemy souls.',
+        stats: { damage: 17, arcane: 11, manaRegen: 1 },
+        icon: 'orb'
+      };
+      armor = {
+        id: 'nightmare_start',
+        name: 'Nightmare Shroud',
+        type: 'Armor',
+        rarity: 'Epic',
+        description: 'A shroud conjured from nightmares that distorts enemy sight.',
+        stats: { defense: 4, arcane: 8, vitality: 4 },
+        icon: 'cloak'
+      };
+    } else if (selectedClass === 'IronSentinel') {
+      weapon = {
+        id: 'hammer_start',
+        name: 'Ruin Hammer',
+        type: 'Weapon',
+        rarity: 'Rare',
+        description: 'A heavy hammer built to crush anything in its path.',
+        stats: { damage: 26, strength: 7, defense: 3 },
+        icon: 'hammer'
+      };
+      armor = {
+        id: 'carapace_start',
+        name: 'Ironbound Carapace',
+        type: 'Armor',
+        rarity: 'Rare',
+        description: 'A monolithic shell of iron that absorbs attacks with ease.',
+        stats: { defense: 8, vitality: 5, strength: 2 },
+        icon: 'plate'
+      };
+    } else if (selectedClass === 'SpiritHunter') {
+      weapon = {
+        id: 'spectral_bow_start',
+        name: 'Spectral Bow',
+        type: 'Weapon',
+        rarity: 'Rare',
+        description: 'A bow strung with spectral energy, firing arrows through the veil.',
+        stats: { damage: 18, agility: 9, arcane: 5 },
+        icon: 'bow'
+      };
+      armor = {
+        id: 'phantom_start',
+        name: 'Phantom Mantle',
+        type: 'Armor',
+        rarity: 'Rare',
+        description: 'A mantle of woven spirits that aids in tracking and evasion.',
+        stats: { defense: 4, agility: 6, vitality: 4 },
+        icon: 'cloak'
+      };
+    } else if (selectedClass === 'SoulBard') {
+      weapon = {
+        id: 'harp_start',
+        name: 'Lament Harp',
+        type: 'Weapon',
+        rarity: 'Rare',
+        description: 'A haunted harp that uses song to twist the fate of combat.',
+        stats: { damage: 15, arcane: 7, manaRegen: 1 },
+        icon: 'harp'
+      };
+      armor = {
+        id: 'ballad_start',
+        name: 'Ballad Robes',
+        type: 'Armor',
+        rarity: 'Rare',
+        description: 'Robes that resonate with the songs of sorrow and power.',
+        stats: { defense: 3, arcane: 8, vitality: 4 },
+        icon: 'robes'
       };
     }
 
