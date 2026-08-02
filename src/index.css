@@ -281,6 +281,29 @@ body.gothic-bg {
   min-height: 100%;
 }
 
+.dashboard-layer {
+  position: relative;
+  min-height: 100vh;
+  padding: 1.5rem;
+  background: linear-gradient(180deg, rgba(11,7,8,0.95) 0%, rgba(4,4,5,0.98) 100%);
+  box-shadow: inset 0 0 120px rgba(0,0,0,0.65);
+}
+
+.dashboard-layer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle at top, rgba(232,116,59,0.12), transparent 32%),
+                    radial-gradient(circle at bottom right, rgba(107,74,158,0.08), transparent 30%);
+  mix-blend-mode: screen;
+}
+
+.dashboard-layer > .page-shell {
+  position: relative;
+  z-index: 3;
+}
+
 .gothic-screen {
   width: 100%;
   min-height: 100%;

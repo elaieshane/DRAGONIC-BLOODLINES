@@ -620,22 +620,23 @@ export default function App() {
         <span className="ember" />
       </div>
 
-      <div className="page-shell">
-        <header className="site-header" role="banner">
-          <div>
-            <p className="brand-title">Dragonic Bloodlines</p>
-            <p className="brand-subtitle">Gothic Dungeon RPG</p>
-          </div>
-          <div className="header-status" aria-live="polite">
-            {screen === 'playing' ? (
-              <span>Current Run: {player.class.replace(/([A-Z])/g, ' $1').trim()}</span>
-            ) : (
-              <span>{screen.replace('_', ' ').toUpperCase()}</span>
-            )}
-          </div>
-        </header>
+      <div className="dashboard-layer">
+        <div className="page-shell">
+          <header className="site-header" role="banner">
+            <div>
+              <p className="brand-title">Dragonic Bloodlines</p>
+              <p className="brand-subtitle">Gothic Dungeon RPG</p>
+            </div>
+            <div className="header-status" aria-live="polite">
+              {screen === 'playing' ? (
+                <span>Current Run: {player.class.replace(/([A-Z])/g, ' $1').trim()}</span>
+              ) : (
+                <span>{screen.replace('_', ' ').toUpperCase()}</span>
+              )}
+            </div>
+          </header>
 
-        <div className="site-content">
+          <div className="site-content">
 
       {/* 0. 3s Intro Logo Splash */}
       {screen === 'intro_splash' && (
@@ -1211,6 +1212,7 @@ export default function App() {
       )}
 
         </div>
+      </div>
 
         <footer className="site-footer" role="contentinfo">
           <span>© 2026 Draconic Bloodlines</span>
