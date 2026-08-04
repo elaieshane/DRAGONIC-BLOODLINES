@@ -122,6 +122,8 @@ export default function DungeonCanvas({
   
   // Track game time/frames
   const gameFrame = useRef(0);
+  const floorStartTimeRef = useRef(Date.now());
+  const [floorSec, setFloorSec] = useState(0);
 
   // Companion system representation
   interface CompanionEntity {
@@ -150,6 +152,8 @@ export default function DungeonCanvas({
 
   // Sync enemies on level load
   useEffect(() => {
+    floorStartTimeRef.current = Date.now();
+    setFloorSec(0);
     // Spawn concrete enemy instances from spawns
     const spawnedEnemies = level.enemySpawns.map((s, idx) => {
       let maxHp = 30;
@@ -241,6 +245,66 @@ export default function DungeonCanvas({
           dmg = 22;
           spd = 1.3;
           name = 'Vlad the Vampire Lord';
+          break;
+        case 'HollowArchbishop':
+          maxHp = 1050;
+          dmg = 34;
+          spd = 0.75;
+          name = 'The Hollow Archbishop';
+          break;
+        case 'WitchQueen':
+          maxHp = 980;
+          dmg = 33;
+          spd = 1.05;
+          name = 'Witch Queen Morvessa';
+          break;
+        case 'BlackKnight':
+          maxHp = 1120;
+          dmg = 36;
+          spd = 0.85;
+          name = 'Sir Garruk, The Black Knight';
+          break;
+        case 'NecromancerKing':
+          maxHp = 1180;
+          dmg = 38;
+          spd = 0.8;
+          name = 'Necromancer King Malakar';
+          break;
+        case 'EmperorCaelus':
+          maxHp = 1450;
+          dmg = 42;
+          spd = 0.95;
+          name = 'Emperor Caelus, The Ancient Dragon';
+          break;
+        case 'CathedralTemplar':
+          maxHp = 420;
+          dmg = 20;
+          spd = 1.05;
+          name = 'Cathedral Templar';
+          break;
+        case 'CrocodileKing':
+          maxHp = 520;
+          dmg = 24;
+          spd = 1.05;
+          name = 'Crocodile King';
+          break;
+        case 'Frankenstein':
+          maxHp = 640;
+          dmg = 28;
+          spd = 0.9;
+          name = 'Frankenstein';
+          break;
+        case 'BoneGiant':
+          maxHp = 700;
+          dmg = 30;
+          spd = 0.7;
+          name = 'Bone Giant';
+          break;
+        case 'DragonKnight':
+          maxHp = 760;
+          dmg = 32;
+          spd = 1.1;
+          name = 'Draconic Knight-Captain';
           break;
         case 'ChimeraBeast':
           maxHp = 420;
@@ -370,9 +434,11 @@ export default function DungeonCanvas({
           break;
       }
 
-      const isMainBoss = s.type === 'WerewolfKing' || s.type === 'VampireNoble' || s.type === 'SmelterGiant' || s.type === 'CthulhuSquid' || s.type === 'FrostLich' || s.type === 'PlagueBehemoth' || s.type === 'VoidEmperor' || s.type === 'GraveDragun' || s.type === 'ChaosHydra' || s.type === 'CountDracula';
-      const isSubBoss = s.type === 'SkeletonKing' || s.type === 'ChimeraBeast' || s.type === 'GargoyleTitan' || s.type === 'ShadowHarpy' || s.type === 'MagmaWyrm' || s.type === 'BrimstoneSerpent' || s.type === 'FrostDrake' || s.type === 'Leviathan' || s.type === 'NecroConstruct' || s.type === 'BloodFiend' || s.type === 'VoidStalker' || s.type === 'SolarGolem' || s.type === 'ChaosOrbitor' || s.type === 'VampireLord';
+      const isMainBoss = s.type === 'WerewolfKing' || s.type === 'VampireNoble' || s.type === 'SmelterGiant' || s.type === 'CthulhuSquid' || s.type === 'FrostLich' || s.type === 'PlagueBehemoth' || s.type === 'VoidEmperor' || s.type === 'GraveDragun' || s.type === 'ChaosHydra' || s.type === 'CountDracula' || s.type === 'HollowArchbishop' || s.type === 'WitchQueen' || s.type === 'BlackKnight' || s.type === 'NecromancerKing' || s.type === 'EmperorCaelus';
+      const isSubBoss = s.type === 'SkeletonKing' || s.type === 'ChimeraBeast' || s.type === 'GargoyleTitan' || s.type === 'ShadowHarpy' || s.type === 'MagmaWyrm' || s.type === 'BrimstoneSerpent' || s.type === 'FrostDrake' || s.type === 'Leviathan' || s.type === 'NecroConstruct' || s.type === 'BloodFiend' || s.type === 'VoidStalker' || s.type === 'SolarGolem' || s.type === 'ChaosOrbitor' || s.type === 'VampireLord' || s.type === 'CathedralTemplar' || s.type === 'CrocodileKing' || s.type === 'Frankenstein' || s.type === 'BoneGiant' || s.type === 'DragonKnight';
       const isBoss = isMainBoss || isSubBoss;
+      const isDormant = isBoss;
+      const spawnDelaySeconds = isMainBoss ? 45 : isSubBoss ? 25 : 0;
 
       const size = s.type === 'ChaosHydra' ? 70 : s.type === 'GraveDragun' ? 68 : s.type === 'VoidEmperor' ? 66 : s.type === 'CountDracula' ? 64 : s.type === 'CthulhuSquid' ? 62 : s.type === 'PlagueBehemoth' ? 60 : s.type === 'SmelterGiant' ? 58 : s.type === 'FrostLich' ? 56 : s.type === 'VampireNoble' ? 52 : s.type === 'WerewolfKing' ? 48 : isSubBoss ? 32 : s.type === 'BloodFiend' ? 22 : s.type === 'Zombie' ? 17 : 16;
       const xpReward = isMainBoss ? 600 + level.floorIndex * 150 : isSubBoss ? 300 + level.floorIndex * 60 : 25 + level.floorIndex * 5;
@@ -392,6 +458,10 @@ export default function DungeonCanvas({
         speed: spd,
         xpReward,
         isBoss,
+        isSubBoss,
+        isMainBoss,
+        isDormant,
+        spawnDelaySeconds,
         state: 'idle' as const,
         stateTimer: 0,
         lastAttackTime: 0,
@@ -405,12 +475,6 @@ export default function DungeonCanvas({
     projectilesRef.current = [];
     particlesRef.current = [];
     damageNumbersRef.current = [];
-
-    // Trigger music change if boss is present
-    const hasBoss = spawnedEnemies.some(e => e.isBoss);
-    if (hasBoss) {
-      playSound('boss_roar');
-    }
 
     // Explored spawn room
     exploreAroundPlayer(Math.floor(player.x / 32), Math.floor(player.y / 32));
@@ -581,6 +645,7 @@ export default function DungeonCanvas({
     }));
     playSound('spell');
     enemiesRef.current.forEach(e => {
+      if (e.isDormant) return;
       e.rootedTimer = 180; // 3 seconds root
       spawnSplashParticles(e.x, e.y, '#22c55e', 15);
       spawnDamageNumber(e.x, e.y - 12, 'ROOTED IN VINES (3S)! 🌿', '#22c55e');
@@ -752,6 +817,7 @@ export default function DungeonCanvas({
 
         // Damage enemies in explosion range instantly!
         enemiesRef.current.forEach(e => {
+          if (e.isDormant) return;
           const dist = Math.sqrt((e.x - fx) ** 2 + (e.y - fy) ** 2);
           if (dist < 28 + e.size) {
             const finalDmg = Math.round((22 + player.stats.arcane * 2.2) * (0.9 + Math.random() * 0.2));
@@ -871,6 +937,7 @@ export default function DungeonCanvas({
     let hitAtLeastOne = false;
 
     enemiesRef.current.forEach(e => {
+      if (e.isDormant) return;
       const dist = Math.sqrt((e.x - hitX) ** 2 + (e.y - hitY) ** 2);
       if (dist < hitSize + e.size) {
         // Hit enemy!
@@ -945,6 +1012,10 @@ export default function DungeonCanvas({
 
     const gameLoop = () => {
       gameFrame.current++;
+
+      if (gameFrame.current % 60 === 0) {
+        setFloorSec(Math.floor((Date.now() - floorStartTimeRef.current) / 1000));
+      }
 
       if (!activeDialogue) {
         updatePlayerAndPhysics();
@@ -1198,6 +1269,7 @@ export default function DungeonCanvas({
       if (p.isPlayer && p.damage > 0) {
         // Projectile hits enemy?
         for (const e of enemiesRef.current) {
+          if (e.isDormant) continue;
           if (circlesCollide(p.x, p.y, p.size, e.x, e.y, e.size)) {
             // Hit!
             e.health -= p.damage;
@@ -1234,6 +1306,7 @@ export default function DungeonCanvas({
       let closestEnemy: Enemy | null = null;
       let closestDist = Infinity;
       enemiesRef.current.forEach(e => {
+        if (e.isDormant) return;
         const d = Math.sqrt((comp.x - e.x) ** 2 + (comp.y - e.y) ** 2);
         if (d < closestDist) {
           closestDist = d;
@@ -1399,8 +1472,38 @@ export default function DungeonCanvas({
   };
 
   const updateEnemiesAndAI = () => {
+    const elapsedSec = (Date.now() - floorStartTimeRef.current) / 1000;
+
     // Update enemies list, filter dead ones to spawn gold/xp
     enemiesRef.current = enemiesRef.current.filter(e => {
+      // Handle dormant boss spawn timers (sub boss 25s, main boss 45s)
+      if (e.isDormant) {
+        const delay = e.spawnDelaySeconds || (e.isMainBoss ? 45 : 25);
+        if (elapsedSec >= delay) {
+          e.isDormant = false;
+          playSound('boss_roar');
+          screenShakeRef.current = 22;
+          const label = e.isMainBoss ? '🔥 MAIN BOSS HAS ARRIVED!' : '⚠️ SUB BOSS HAS ARRIVED!';
+          spawnDamageNumber(e.x, e.y - 30, `${label} ${e.name}`, e.isMainBoss ? '#ef4444' : '#f59e0b');
+          spawnSplashParticles(e.x, e.y, e.isMainBoss ? '#ef4444' : '#f59e0b', 35);
+
+          // Explore area around boss so player sees awakening
+          const bx = Math.floor(e.x / 32);
+          const by = Math.floor(e.y / 32);
+          for (let dy = -5; dy <= 5; dy++) {
+            for (let dx = -5; dx <= 5; dx++) {
+              const tx = bx + dx;
+              const ty = by + dy;
+              if (tx >= 0 && tx < level.width && ty >= 0 && ty < level.height) {
+                level.grid[ty][tx].explored = true;
+              }
+            }
+          }
+        } else {
+          return true; // Keep dormant boss in array, but skip AI/movement
+        }
+      }
+
       if (e.health <= 0) {
         // Check if main boss has Phase 2 (Awakened Demon form)
         if (e.isBoss && !e.isAwakenedForm) {
@@ -3382,6 +3485,53 @@ export default function DungeonCanvas({
       // Check if enemy is in camera frame
       if (sx < -50 || sx > dimensions.width + 50 || sy < -50 || sy > dimensions.height + 50) return;
 
+      // Draw dormant boss summoning circle & countdown
+      if (e.isDormant) {
+        const elapsedSec = (Date.now() - floorStartTimeRef.current) / 1000;
+        const delay = e.spawnDelaySeconds || (e.isMainBoss ? 45 : 25);
+        const remainingSec = Math.max(0, Math.ceil(delay - elapsedSec));
+
+        // Glowing ritual pentagram
+        const pulse = Math.sin(gameFrame.current * 0.1) * 3 + e.size * 0.9;
+        const ritualColor = e.isMainBoss ? '#ef4444' : '#f59e0b';
+
+        ctx.strokeStyle = ritualColor;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(sx, sy, pulse, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(sx - pulse * 0.7, sy);
+        ctx.lineTo(sx + pulse * 0.7, sy);
+        ctx.moveTo(sx, sy - pulse * 0.7);
+        ctx.lineTo(sx, sy + pulse * 0.7);
+        ctx.stroke();
+
+        // Draw countdown label above ritual seal
+        ctx.font = 'bold 11px monospace';
+        ctx.fillStyle = ritualColor;
+        ctx.textAlign = 'center';
+        const bossTypeLabel = e.isMainBoss ? '🔥 MAIN BOSS AWAKENING' : '⚔️ SUB BOSS RITUAL';
+        ctx.fillText(`${bossTypeLabel}: ${remainingSec}s`, sx, sy - pulse - 8);
+        ctx.font = 'bold 10px sans-serif';
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillText(e.name, sx, sy - pulse - 22);
+
+        // Translucent ghostly silhouette inside circle
+        ctx.save();
+        ctx.globalAlpha = 0.4 + Math.sin(gameFrame.current * 0.15) * 0.15;
+        ctx.fillStyle = e.color || '#dc2626';
+        ctx.beginPath();
+        ctx.arc(sx, sy, e.size * 0.75, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        return;
+      }
+
       // Draw shadow circle base
       ctx.fillStyle = 'rgba(0,0,0,0.4)';
       ctx.beginPath();
@@ -4476,6 +4626,37 @@ export default function DungeonCanvas({
             <span className="text-sm">🌌</span> <span>Stairs/Portals progress floor</span>
           </div>
         </div>
+
+        {/* Top-Center Boss Awakening Timer HUD Banner */}
+        {(() => {
+          const elapsedSec = (Date.now() - floorStartTimeRef.current) / 1000;
+          const dormantSub = enemiesRef.current.find(e => e.isSubBoss && e.isDormant);
+          const dormantMain = enemiesRef.current.find(e => e.isMainBoss && e.isDormant);
+          const remSub = dormantSub ? Math.max(0, Math.ceil((dormantSub.spawnDelaySeconds || 25) - elapsedSec)) : null;
+          const remMain = dormantMain ? Math.max(0, Math.ceil((dormantMain.spawnDelaySeconds || 45) - elapsedSec)) : null;
+
+          if (remSub === null && remMain === null) return null;
+
+          return (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 bg-zinc-950/90 border border-zinc-800/90 px-4 py-2 rounded-xl backdrop-blur-md shadow-2xl font-mono text-xs text-zinc-200">
+              {remSub !== null && remSub > 0 && (
+                <div className="flex items-center gap-1.5 text-amber-400 font-bold">
+                  <span className="animate-pulse text-sm">⚔️</span>
+                  <span>Sub-Boss in: <b className="text-amber-300 text-sm">{remSub}s</b></span>
+                </div>
+              )}
+              {remSub !== null && remMain !== null && remSub > 0 && remMain > 0 && (
+                <span className="text-zinc-700">|</span>
+              )}
+              {remMain !== null && remMain > 0 && (
+                <div className="flex items-center gap-1.5 text-red-400 font-bold">
+                  <span className="animate-pulse text-sm">🔥</span>
+                  <span>Main Boss in: <b className="text-red-300 text-sm">{remMain}s</b></span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Potion Quick-Bar & Keys HUD Overlay */}
         <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">

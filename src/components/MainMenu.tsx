@@ -1897,39 +1897,57 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
                           : 'border-zinc-900 bg-zinc-950/40 text-zinc-400 hover:text-zinc-200'
                       }`}
                     >
-                      {bestiaryMonsters[monsterId as keyof typeof bestiaryMonsters].name}
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={monsterImages[monsterId as keyof typeof monsterImages]}
+                          alt={bestiaryMonsters[monsterId as keyof typeof bestiaryMonsters].name}
+                          className="h-10 w-10 rounded-md object-cover border border-zinc-800 shrink-0"
+                          referrerPolicy="no-referrer"
+                        />
+                        <span>{bestiaryMonsters[monsterId as keyof typeof bestiaryMonsters].name}</span>
+                      </div>
                     </button>
                   ))}
                 </div>
 
                 {/* Details */}
                 <div className="md:col-span-7 bg-zinc-900/30 p-4 rounded-xl border border-red-950/20 flex flex-col justify-between">
-                  <div>
-                    <div className="border-b border-zinc-800 pb-2 mb-2 flex justify-between items-center">
-                      <h3 className="text-sm font-bold font-serif text-zinc-100">
-                        {bestiaryMonsters[selectedBestiary as keyof typeof bestiaryMonsters].name}
-                      </h3>
-                      <span className="text-[9px] font-mono text-zinc-500 uppercase">
-                        {bestiaryMonsters[selectedBestiary as keyof typeof bestiaryMonsters].type}
-                      </span>
+                  <div className="grid grid-cols-1 md:grid-cols-[140px_minmax(0,1fr)] gap-4">
+                    <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/80">
+                      <img
+                        src={monsterImages[selectedBestiary as keyof typeof monsterImages] || mainBannerImg}
+                        alt={`Portrait of ${bestiaryMonsters[selectedBestiary as keyof typeof bestiaryMonsters].name}`}
+                        className="h-40 w-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
                     </div>
 
-                    <p className="text-xs text-zinc-400 font-serif leading-relaxed mb-4">
-                      {bestiaryMonsters[selectedBestiary as keyof typeof bestiaryMonsters].desc}
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-3 text-[10px] font-mono">
-                      <div className="p-2 bg-zinc-950 rounded border border-zinc-900">
-                        <span className="text-zinc-500 block">BASE HEALTH</span>
-                        <span className="text-red-400 font-bold">{bestiaryMonsters[selectedBestiary as keyof typeof bestiaryMonsters].hp} HP</span>
+                    <div>
+                      <div className="border-b border-zinc-800 pb-2 mb-2 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                        <h3 className="text-sm font-bold font-serif text-zinc-100">
+                          {bestiaryMonsters[selectedBestiary as keyof typeof bestiaryMonsters].name}
+                        </h3>
+                        <span className="text-[9px] font-mono text-zinc-500 uppercase">
+                          {bestiaryMonsters[selectedBestiary as keyof typeof bestiaryMonsters].type}
+                        </span>
                       </div>
-                      <div className="p-2 bg-zinc-950 rounded border border-zinc-900">
-                        <span className="text-zinc-500 block">THREAT PATTERN</span>
-                        <span className="text-amber-500 font-bold">{bestiaryMonsters[selectedBestiary as keyof typeof bestiaryMonsters].atk}</span>
+
+                      <p className="text-xs text-zinc-400 font-serif leading-relaxed mb-4">
+                        {bestiaryMonsters[selectedBestiary as keyof typeof bestiaryMonsters].desc}
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-3 text-[10px] font-mono">
+                        <div className="p-2 bg-zinc-950 rounded border border-zinc-900">
+                          <span className="text-zinc-500 block">BASE HEALTH</span>
+                          <span className="text-red-400 font-bold">{bestiaryMonsters[selectedBestiary as keyof typeof bestiaryMonsters].hp} HP</span>
+                        </div>
+                        <div className="p-2 bg-zinc-950 rounded border border-zinc-900">
+                          <span className="text-zinc-500 block">THREAT PATTERN</span>
+                          <span className="text-amber-500 font-bold">{bestiaryMonsters[selectedBestiary as keyof typeof bestiaryMonsters].atk}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-
                   <div className="p-2 bg-zinc-950/80 border border-zinc-900 rounded font-mono text-[9px] text-zinc-500 mt-4">
                     🛡️ <span className="text-emerald-400 font-bold">WEAKNESS:</span> {bestiaryMonsters[selectedBestiary as keyof typeof bestiaryMonsters].weakness}
                   </div>
