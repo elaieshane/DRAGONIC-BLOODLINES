@@ -46,7 +46,7 @@ export function generateLevel(kingdomIndex: number, floorIndex: number, theme: F
   let stairsSpawn = { x: Math.floor(width / 2), y: Math.floor(height / 2) };
   let bossSpawn: { x: number; y: number } | undefined = undefined;
 
-  // SPECIAL CASE: Inner Sanctum / Boss Arena (Floor 4 or Floor 2)
+  // SPECIAL CASE: Major Boss Arena (Floor 5)
   if (isBossFloor) {
     // Large centered arena
     const arenaW = 18;
@@ -463,6 +463,368 @@ export function generateLevel(kingdomIndex: number, floorIndex: number, theme: F
   };
 }
 
+// Alternate simple generator based on floor only.
+// This coexists with the more feature-rich `generateLevel(kingdomIndex, ...)` above.
+export function generateLevelFromFloor(floorIndex: number): LevelData {
+  const isBossFloor = floorIndex === 5;
+
+  const width = isBossFloor ? 32 : (floorIndex === 1 ? 44 : 52);
+  const height = isBossFloor ? 32 : (floorIndex === 1 ? 44 : 52);
+
+  // Map simple floor -> theme, default to VampireCrypt
+  let floorTheme: FloorTheme = 'VampireCrypt';
+  if (floorIndex === 2) floorTheme = 'GothicCathedral';
+  else if (floorIndex === 3) floorTheme = 'DragunMaw';
+  else if (floorIndex === 4) floorTheme = 'AbyssalDepths';
+  else if (floorIndex === 5) floorTheme = 'FrostSpire';
+  else if (floorIndex === 6) floorTheme = 'NecroCatacombs';
+  else if (floorIndex === 7) floorTheme = 'VoidBastion';
+  else if (floorIndex === 8) floorTheme = 'SolarForge';
+  else if (floorIndex === 9) floorTheme = 'ChaosChamber';
+  else if (floorIndex >= 10) floorTheme = 'InnerSanctum';
+
+  const grid: Tile[][] = Array.from({ length: height }, () =>
+    Array.from({ length: width }, () => ({ type: 'Wall', explored: false }))
+  );
+
+  const enemySpawns: { x: number; y: number; type: EnemyType }[] = [];
+  const chestSpawns: { x: number; y: number }[] = [];
+  let playerSpawn = { x: Math.floor(width / 2), y: Math.floor(height / 2) };
+  let stairsSpawn = { x: Math.floor(width / 2), y: Math.floor(height / 2) };
+  let bossSpawn: { x: number; y: number } | undefined = undefined;
+  let portalBackSpawn: { x: number; y: number } | undefined = undefined;
+
+  if (isBossFloor) {
+    const arenaW = 18;
+    const arenaH = 18;
+    const startX = Math.floor((width - arenaW) / 2);
+    const startY = Math.floor((height - arenaH) / 2);
+
+    for (let y = startY; y < startY + arenaH; y++) {
+      for (let x = startX; x < startX + arenaW; x++) {
+        if (y === startY || y === startY + arenaH - 1 || x === startX || x === startX + arenaW - 1) {
+          grid[y][x].type = 'Wall';
+        } else {
+          grid[y][x].type = 'Floor';
+          if (floorTheme === 'InnerSanctum') {
+            if (
+              (y === startY + 2 && (x === startX + 2 || x === startX + 3 || x === startX + arenaW - 3 || x === startX + arenaW - 4)) ||
+              (y === startY + 3 && (x === startX + 2 || x === startX + arenaW - 3))
+            ) {
+              grid[y][x].type = 'Lava';
+            }
+          } else {
+            if (
+              (y === startY + 2 && (x === startX + 2 || x === startX + 3 || x === startX + arenaW - 3 || x === startX + arenaW - 4)) ||
+              (y === startY + 3 && (x === startX + 2 || x === startX + arenaW - 3))
+            ) {
+              grid[y][x].type = 'BloodPool';
+            }
+          }
+        }
+      }
+    }
+
+    const pillars = [
+      { x: startX + 5, y: startY + 5 },
+      { x: startX + arenaW - 6, y: startY + 5 },
+      { x: startX + 5, y: startY + arenaH - 6 },
+      { x: startX + arenaW - 6, y: startY + arenaH - 6 },
+    ];
+    pillars.forEach(p => {
+      grid[p.y][p.x].type = 'Wall';
+      grid[p.y][p.x].decoration = 'pillar';
+    });
+
+    playerSpawn = { x: startX + Math.floor(arenaW / 2), y: startY + arenaH - 3 };
+    bossSpawn = { x: startX + Math.floor(arenaW / 2), y: startY + 6 };
+    let bossType: EnemyType = 'GraveDragun';
+    enemySpawns.push({ x: bossSpawn.x, y: bossSpawn.y, type: bossType });
+    stairsSpawn = { x: startX + Math.floor(arenaW / 2), y: startY + 2 };
+    chestSpawns.push({ x: startX + 3, y: startY + 3 });
+    chestSpawns.push({ x: startX + arenaW - 4, y: startY + 3 });
+  } else {
+    const rooms: Room[] = [];
+    const minRoomSize = 5;
+    const maxRoomSize = 9;
+    const targetRoomCount = floorIndex === 1 ? 12 : 16;
+
+    let attempts = 0;
+    while (rooms.length < targetRoomCount && attempts < 150) {
+      attempts++;
+      const rw = Math.floor(Math.random() * (maxRoomSize - minRoomSize + 1)) + minRoomSize;
+      const rh = Math.floor(Math.random() * (maxRoomSize - minRoomSize + 1)) + minRoomSize;
+      const rx = Math.floor(Math.random() * (width - rw - 4)) + 2;
+      const ry = Math.floor(Math.random() * (height - rh - 4)) + 2;
+
+      let overlap = false;
+      for (const r of rooms) {
+        if (
+          rx < r.x + r.w + 2 &&
+          rx + rw + 2 > r.x &&
+          ry < r.y + r.h + 2 &&
+          ry + rh + 2 > r.y
+        ) {
+          overlap = true;
+          break;
+        }
+      }
+
+      if (!overlap) rooms.push({ x: rx, y: ry, w: rw, h: rh });
+    }
+
+    rooms.forEach((r, idx) => {
+      for (let y = r.y; y < r.y + r.h; y++) {
+        for (let x = r.x; x < r.x + r.w; x++) {
+          grid[y][x].type = 'Floor';
+          if (idx !== 0 && Math.random() < 0.04) {
+            if (floorTheme === 'DragunMaw') grid[y][x].type = 'Lava';
+            else grid[y][x].type = 'BloodPool';
+          }
+        }
+      }
+    });
+
+    for (let i = 0; i < rooms.length - 1; i++) {
+      const r1 = rooms[i];
+      const r2 = rooms[i + 1];
+      const x1 = Math.floor(r1.x + r1.w / 2);
+      const y1 = Math.floor(r1.y + r1.h / 2);
+      const x2 = Math.floor(r2.x + r2.w / 2);
+      const y2 = Math.floor(r2.y + r2.h / 2);
+      const minX = Math.min(x1, x2);
+      const maxX = Math.max(x1, x2);
+      for (let cx = minX; cx <= maxX; cx++) grid[y1][cx].type = 'Floor';
+      const minY = Math.min(y1, y2);
+      const maxY = Math.max(y1, y2);
+      for (let cy = minY; cy <= maxY; cy++) grid[cy][x2].type = 'Floor';
+    }
+
+    // Doors
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        if (grid[y][x].type === 'Floor') {
+          const left = grid[y][x - 1].type === 'Wall';
+          const right = grid[y][x + 1].type === 'Wall';
+          const top = grid[y - 1][x].type === 'Wall';
+          const bottom = grid[y + 1][x].type === 'Wall';
+          if ((left && right && !top && !bottom) || (!left && !right && top && bottom)) {
+            if (Math.random() < 0.35) grid[y][x].type = 'Door';
+          }
+        }
+      }
+    }
+
+    const bossRoomIndex = Math.min(rooms.length - 2, Math.floor(rooms.length / 2));
+    const bossRoom = rooms[bossRoomIndex];
+    const bossCenterX = Math.floor(bossRoom.x + bossRoom.w / 2);
+    const bossCenterY = Math.floor(bossRoom.y + bossRoom.h / 2);
+    const bMinX = Math.max(1, bossCenterX - 4);
+    const bMaxX = Math.min(width - 2, bossCenterX + 4);
+    const bMinY = Math.max(1, bossCenterY - 4);
+    const bMaxY = Math.min(height - 2, bossCenterY + 4);
+    for (let y = bMinY; y <= bMaxY; y++) {
+      for (let x = bMinX; x <= bMaxX; x++) {
+        grid[y][x].type = 'Floor';
+        grid[y][x].decoration = 'boss_chamber';
+      }
+    }
+    grid[bMinY + 1][bMinX + 1] = { type: 'Wall', decoration: 'candelabra', explored: false };
+    grid[bMinY + 1][bMaxX - 1] = { type: 'Wall', decoration: 'candelabra', explored: false };
+    grid[bMaxY - 1][bMinX + 1] = { type: 'Wall', decoration: 'candelabra', explored: false };
+    grid[bMaxY - 1][bMaxX - 1] = { type: 'Wall', decoration: 'candelabra', explored: false };
+
+    playerSpawn = { x: Math.floor(rooms[0].x + rooms[0].w / 2), y: Math.floor(rooms[0].y + rooms[0].h / 2) };
+
+    if (floorIndex > 1) {
+      const pbx = Math.min(width - 2, playerSpawn.x + 1);
+      const pby = playerSpawn.y;
+      grid[pby][pbx].type = 'PortalBack';
+      portalBackSpawn = { x: pbx, y: pby };
+    }
+
+    const lastRoom = rooms[rooms.length - 1];
+    stairsSpawn = { x: Math.floor(lastRoom.x + lastRoom.w / 2), y: Math.floor(lastRoom.y + lastRoom.h / 2) };
+    if (floorIndex >= 10) grid[stairsSpawn.y][stairsSpawn.x].type = 'EscapePortal';
+    else grid[stairsSpawn.y][stairsSpawn.x].type = 'Stairs';
+
+    // Sub-boss guard
+    let portalGuardSubBoss: EnemyType = 'SkeletonKing';
+    if (floorIndex === 1) portalGuardSubBoss = 'SkeletonKing';
+    else if (floorIndex === 2) portalGuardSubBoss = 'GargoyleTitan';
+    else if (floorIndex === 3) portalGuardSubBoss = 'MagmaWyrm';
+    else if (floorIndex === 4) portalGuardSubBoss = 'Leviathan';
+    else if (floorIndex === 5) portalGuardSubBoss = 'FrostDrake';
+    else if (floorIndex === 6) portalGuardSubBoss = 'NecroConstruct';
+    else if (floorIndex === 7) portalGuardSubBoss = 'VoidStalker';
+    else if (floorIndex === 8) portalGuardSubBoss = 'SolarGolem';
+    else if (floorIndex === 9) portalGuardSubBoss = 'ChaosOrbitor';
+    else if (floorIndex >= 10) portalGuardSubBoss = 'GraveDragun';
+
+    enemySpawns.push({ x: stairsSpawn.x, y: Math.max(1, stairsSpawn.y - 1), type: portalGuardSubBoss });
+
+    // Main boss & guards in boss chamber
+    let mainBossType: EnemyType = 'WerewolfKing';
+    let chamberSubBoss: EnemyType = 'ChimeraBeast';
+    let footSoldierType: EnemyType = 'Zombie';
+    let eerieNightCreatureType: EnemyType = 'Ghost';
+
+    if (floorIndex === 1) {
+      mainBossType = 'WerewolfKing';
+      chamberSubBoss = 'ChimeraBeast';
+      footSoldierType = 'Werewolf';
+      eerieNightCreatureType = 'Ghost';
+    } else if (floorIndex === 2) {
+      mainBossType = 'VampireNoble';
+      chamberSubBoss = 'ShadowHarpy';
+      footSoldierType = 'BloodFiend';
+      eerieNightCreatureType = 'Hollow';
+    } else if (floorIndex === 3) {
+      mainBossType = 'SmelterGiant';
+      chamberSubBoss = 'BrimstoneSerpent';
+      footSoldierType = 'DragonCultist';
+      eerieNightCreatureType = 'Ghost';
+    } else if (floorIndex === 4) {
+      mainBossType = 'CthulhuSquid';
+      chamberSubBoss = 'FrostDrake';
+      footSoldierType = 'BloodFiend';
+      eerieNightCreatureType = 'Ghost';
+    } else if (floorIndex === 5) {
+      mainBossType = 'FrostLich';
+      chamberSubBoss = 'NecroConstruct';
+      footSoldierType = 'Hollow';
+      eerieNightCreatureType = 'Ghost';
+    } else if (floorIndex === 6) {
+      mainBossType = 'PlagueBehemoth';
+      chamberSubBoss = 'BloodFiend';
+      footSoldierType = 'Zombie';
+      eerieNightCreatureType = 'Hollow';
+    } else if (floorIndex === 7) {
+      mainBossType = 'VoidEmperor';
+      chamberSubBoss = 'ChaosOrbitor';
+      footSoldierType = 'Hollow';
+      eerieNightCreatureType = 'Ghost';
+    } else if (floorIndex === 8) {
+      mainBossType = 'GraveDragun';
+      chamberSubBoss = 'MagmaWyrm';
+      footSoldierType = 'DragonCultist';
+      eerieNightCreatureType = 'Ghost';
+    } else if (floorIndex === 9) {
+      mainBossType = 'ChaosHydra';
+      chamberSubBoss = 'BrimstoneSerpent';
+      footSoldierType = 'DragonCultist';
+      eerieNightCreatureType = 'ShadowHarpy';
+    } else if (floorIndex >= 10) {
+      mainBossType = 'CountDracula';
+      chamberSubBoss = 'VoidEmperor';
+      footSoldierType = 'BloodFiend';
+      eerieNightCreatureType = 'Ghost';
+    }
+
+    enemySpawns.push({ x: bossCenterX, y: bossCenterY - 1, type: mainBossType });
+    enemySpawns.push({ x: bossCenterX, y: bossCenterY + 2, type: chamberSubBoss });
+    enemySpawns.push({ x: bossCenterX - 2, y: bossCenterY, type: footSoldierType });
+    enemySpawns.push({ x: bossCenterX + 2, y: bossCenterY, type: footSoldierType });
+    enemySpawns.push({ x: bossCenterX - 3, y: bossCenterY - 2, type: eerieNightCreatureType });
+    enemySpawns.push({ x: bossCenterX + 3, y: bossCenterY - 2, type: eerieNightCreatureType });
+
+    if (rooms.length > 1) {
+      const room1 = rooms[1];
+      const npcX = Math.floor(room1.x + room1.w / 2);
+      const npcY = Math.floor(room1.y + room1.h / 2);
+      grid[npcY][npcX].type = 'NPC';
+    }
+
+    rooms.forEach((r, idx) => {
+      if (idx === 0) {
+        chestSpawns.push({ x: r.x + 1, y: r.y + 1 });
+        return;
+      }
+
+      if (Math.random() < 0.45) {
+        chestSpawns.push({ x: r.x + Math.floor(Math.random() * (r.w - 2)) + 1, y: r.y + Math.floor(Math.random() * (r.h - 2)) + 1 });
+      }
+
+      if (Math.random() < 0.45) {
+        const hx = r.x + Math.floor(Math.random() * (r.w - 2)) + 1;
+        const hy = r.y + Math.floor(Math.random() * (r.h - 2)) + 1;
+        if (grid[hy][hx].type === 'Floor') grid[hy][hx].type = 'Herb';
+      }
+
+      if (Math.random() < 0.35) {
+        const px = r.x + Math.floor(Math.random() * (r.w - 2)) + 1;
+        const py = r.y + Math.floor(Math.random() * (r.h - 2)) + 1;
+        if (grid[py][px].type === 'Floor') grid[py][px].type = 'Potion';
+      }
+
+      const roomArea = r.w * r.h;
+      const enemyCount = Math.floor(roomArea / 12) + 1;
+      for (let e = 0; e < enemyCount; e++) {
+        const ex = r.x + Math.floor(Math.random() * r.w);
+        const ey = r.y + Math.floor(Math.random() * r.h);
+        if (grid[ey][ex].type === 'Floor') {
+          let type: EnemyType = 'Bat';
+          const rand = Math.random();
+          if (floorTheme === 'VampireCrypt') {
+            if (rand < 0.30) type = 'Zombie';
+            else if (rand < 0.55) type = 'Bat';
+            else if (rand < 0.75) type = 'Skeleton';
+            else if (rand < 0.90) type = 'Hollow';
+            else type = 'Thrall';
+          } else if (floorTheme === 'GothicCathedral') {
+            if (rand < 0.30) type = 'Ghost';
+            else if (rand < 0.55) type = 'Hollow';
+            else if (rand < 0.75) type = 'Mage';
+            else if (rand < 0.90) type = 'Zombie';
+            else type = 'Thrall';
+          } else if (floorTheme === 'DragunMaw') {
+            if (rand < 0.25) type = 'Werewolf';
+            else if (rand < 0.50) type = 'Zombie';
+            else if (rand < 0.70) type = 'Gargoyle';
+            else if (rand < 0.85) type = 'Mage';
+            else type = 'BloodFiend';
+          } else if (floorTheme === 'InnerSanctum') {
+            if (rand < 0.30) type = 'Hollow';
+            else if (rand < 0.55) type = 'Ghost';
+            else if (rand < 0.80) type = 'DragonCultist';
+            else type = 'BloodFiend';
+          }
+
+          enemySpawns.push({ x: ex, y: ey, type });
+        }
+      }
+    });
+  }
+
+  grid[playerSpawn.y][playerSpawn.x].type = 'Floor';
+
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      if (grid[y][x].type === 'Wall' && grid[y + 1][x].type === 'Floor') {
+        const decRand = Math.random();
+        if (decRand < 0.1) {
+          if (floorTheme === 'VampireCrypt') grid[y][x].decoration = Math.random() < 0.5 ? 'chains' : 'cobweb';
+          else if (floorTheme === 'GothicCathedral') grid[y][x].decoration = Math.random() < 0.5 ? 'candelabra' : 'stained_glass';
+          else grid[y][x].decoration = Math.random() < 0.5 ? 'skull' : 'magma_torch';
+        }
+      }
+    }
+  }
+
+  return {
+    grid,
+    width,
+    height,
+    enemySpawns,
+    chestSpawns,
+    playerSpawn,
+    stairsSpawn,
+    portalBackSpawn,
+    bossSpawn,
+    floorIndex,
+    floorTheme,
+  } as LevelData;
+}
 // Generate an epic retro-loot list
 export const ITEMS_POOL = {
   Weapon: [

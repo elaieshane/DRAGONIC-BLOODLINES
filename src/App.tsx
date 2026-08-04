@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PlayerClass, PlayerState, PlayerCustomization, LevelData, Item, ItemType, GameSettings } from './types';
 import { playSound, startBGM, stopBGM, setVolume } from './components/SoundEffects';
-import { generateLevel } from './utils/procedural';
 import { GameManager } from './managers/GameManager';
 import { SaveManager } from './managers/SaveManager';
 import MainMenu from './components/MainMenu';

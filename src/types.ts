@@ -157,6 +157,13 @@ export interface PlayerState {
   facing: 'left' | 'right' | 'up' | 'down';
   shieldActive: boolean;
   shieldCooldown: number;
+  silverKeys?: number;
+  hasGoldenSecretKey?: boolean;
+  invisibilityTimer?: number;
+  monsterTransformTimer?: number;
+  invisibilityPotions?: number;
+  monsterPotions?: number;
+  vinesPotions?: number;
 }
 
 export type EnemyType = string; // Relaxed to string to support the massive Great Bestiary
@@ -247,7 +254,8 @@ export interface DamageNumber {
 
 export type TileType = 
   | 'Wall' | 'Floor' | 'Door' | 'Lava' | 'BloodPool' | 'Stairs' 
-  | 'NPC' | 'Chest' | 'Herb' | 'Potion' | 'PoisonSwamp' | 'Ice' | 'Abyss';
+  | 'NPC' | 'Chest' | 'Herb' | 'Potion' | 'PoisonSwamp' | 'Ice' | 'Abyss'
+  | 'PortalBack' | 'EscapePortal' | 'SecretDoor' | 'GreenDotTile' | 'Scroll' | 'MonsterStatue' | 'Ruins' | 'SkeletalRemains' | 'Crest';
 
 export interface Tile {
   type: TileType;
@@ -272,7 +280,8 @@ export interface LevelData {
   playerSpawn: { x: number; y: number };
   stairsSpawn: { x: number; y: number };
   bossSpawn?: { x: number; y: number };
-  kingdomIndex: number;
+  kingdomIndex?: number;
+  portalBackSpawn?: { x: number; y: number };
   floorIndex: number;
   floorTheme: FloorTheme;
   isBloodMoon?: boolean;

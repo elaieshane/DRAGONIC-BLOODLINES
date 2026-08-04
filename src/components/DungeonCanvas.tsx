@@ -9,6 +9,7 @@ import {
   Tile, 
   Item, 
   EnemyType,
+  FloorTheme,
   Rarity,
   GameSettings
 } from '../types';
@@ -21,11 +22,73 @@ interface DungeonCanvasProps {
   setPlayer: React.Dispatch<React.SetStateAction<PlayerState>>;
   setLevel: React.Dispatch<React.SetStateAction<LevelData>>;
   onNextFloor: () => void;
+  onPrevFloor?: () => void;
   onGameOver: () => void;
   onVictory: () => void;
   isSheetOpen: boolean;
   gameActive: boolean;
   settings: GameSettings;
+}
+
+function getDungeonColors(theme: FloorTheme, floorIndex: number) {
+  // darkness factor scales down RGB channels per floor level (darkens smoothly with each floor level)
+  const darken = Math.max(0.22, 1 - (floorIndex - 1) * 0.08);
+
+  let rF = 28, gF = 25, bF = 23;
+  let rW = 40, gW = 35, bW = 32;
+  let rA = 60, gA = 55, bA = 50;
+
+  if (theme === 'VampireCrypt') {
+    rF = 38; gF = 28; bF = 48;
+    rW = 50; gW = 38; bW = 64;
+    rA = 75; gA = 55; bA = 95;
+  } else if (theme === 'GothicCathedral') {
+    rF = 24; gF = 38; bF = 62;
+    rW = 34; gW = 52; bW = 82;
+    rA = 55; gA = 80; bA = 125;
+  } else if (theme === 'DragunMaw') {
+    rF = 58; gF = 24; bF = 18;
+    rW = 72; gW = 30; bW = 22;
+    rA = 110; gA = 48; bA = 30;
+  } else if (theme === 'AbyssalDepths') {
+    rF = 16; gF = 48; bF = 52;
+    rW = 24; gW = 62; bW = 68;
+    rA = 40; gA = 100; bA = 110;
+  } else if (theme === 'FrostSpire') {
+    rF = 20; gF = 52; bF = 68;
+    rW = 30; gW = 68; bW = 88;
+    rA = 50; gA = 110; bA = 135;
+  } else if (theme === 'NecroCatacombs') {
+    rF = 22; gF = 46; bF = 24;
+    rW = 30; gW = 58; bW = 32;
+    rA = 48; gA = 95; bA = 50;
+  } else if (theme === 'VoidBastion') {
+    rF = 34; gF = 18; bF = 54;
+    rW = 48; gW = 24; bW = 72;
+    rA = 80; gA = 40; bA = 115;
+  } else if (theme === 'SolarForge') {
+    rF = 62; gF = 46; bF = 18;
+    rW = 80; gW = 58; bW = 22;
+    rA = 125; gA = 95; bA = 35;
+  } else if (theme === 'ChaosChamber') {
+    rF = 48; gF = 20; bF = 48;
+    rW = 64; gW = 28; bW = 64;
+    rA = 105; gA = 45; bA = 105;
+  } else if (theme === 'InnerSanctum') {
+    rF = 58; gF = 12; bF = 18;
+    rW = 75; gW = 16; bW = 24;
+    rA = 120; gA = 24; bA = 34;
+  }
+
+  const applyD = (val: number) => Math.floor(val * darken);
+
+  return {
+    floor: `rgb(${applyD(rF)}, ${applyD(gF)}, ${applyD(bF)})`,
+    floorBorder: `rgb(${applyD(rF * 0.7)}, ${applyD(gF * 0.7)}, ${applyD(bF * 0.7)})`,
+    wall: `rgb(${applyD(rW)}, ${applyD(gW)}, ${applyD(bW)})`,
+    wallHighlight: `rgb(${applyD(rA)}, ${applyD(gA)}, ${applyD(bA)})`,
+    wallBorder: `rgb(${applyD(rW * 0.5)}, ${applyD(gW * 0.5)}, ${applyD(bW * 0.5)})`,
+  };
 }
 
 export default function DungeonCanvas({
@@ -34,6 +97,7 @@ export default function DungeonCanvas({
   setPlayer,
   setLevel,
   onNextFloor,
+  onPrevFloor,
   onGameOver,
   onVictory,
   isSheetOpen,
@@ -167,66 +231,153 @@ export default function DungeonCanvas({
           name = 'Hollow Shade';
           break;
         case 'SkeletonKing':
-          maxHp = 220;
-          dmg = 15;
+          maxHp = 350;
+          dmg = 18;
           spd = 0.9;
-          name = 'Baron von Bone (Necromancer Lord)';
+          name = 'Baron von Bone (Skeleton King)';
           break;
         case 'VampireLord':
-          maxHp = 450;
-          dmg = 20;
-          spd = 1.4;
+          maxHp = 500;
+          dmg = 22;
+          spd = 1.3;
           name = 'Vlad the Vampire Lord';
           break;
         case 'ChimeraBeast':
-          maxHp = 650;
-          dmg = 24;
-          spd = 1.6;
+          maxHp = 420;
+          dmg = 20;
+          spd = 1.5;
           name = 'Ash-Wing Chimera';
           break;
         case 'SmelterGiant':
-          maxHp = 850;
-          dmg = 30;
+          maxHp = 900;
+          dmg = 32;
           spd = 0.8;
-          name = 'Ignis the Smelter Giant';
+          name = 'Ignis the Smelter Titan (Main Boss)';
+          break;
+        case 'GargoyleTitan':
+          maxHp = 480;
+          dmg = 22;
+          spd = 0.85;
+          name = 'Stheno the Stone Titan';
           break;
         case 'WerewolfKing':
-          maxHp = 280;
-          dmg = 18;
+          maxHp = 500;
+          dmg = 22;
           spd = 1.4;
-          name = 'Fenrir the Werewolf King';
+          name = 'Fenrir the Lycan Alpha (Main Boss)';
           break;
         case 'VampireNoble':
-          maxHp = 440;
-          dmg = 22;
-          spd = 1.3;
-          name = 'Lord Sanguinius (Humanoid Vampire)';
+          maxHp = 650;
+          dmg = 26;
+          spd = 1.35;
+          name = 'Lord Sanguinius (Main Boss)';
           break;
         case 'CountDracula':
-          maxHp = 680;
-          dmg = 28;
-          spd = 1.25;
-          name = 'Count Dracula';
+          maxHp = 3500;
+          dmg = 60;
+          spd = 1.3;
+          name = 'Count Dracula (Lord of All Vampires)';
           break;
         case 'CthulhuSquid':
-          maxHp = 950;
-          dmg = 34;
+          maxHp = 1200;
+          dmg = 36;
+          spd = 0.9;
+          name = 'The Eldritch Kraken (Main Boss)';
+          break;
+        case 'Leviathan':
+          maxHp = 580;
+          dmg = 28;
+          spd = 0.95;
+          name = 'The Abyssal Leviathan';
+          break;
+        case 'FrostLich':
+          maxHp = 1500;
+          dmg = 40;
+          spd = 0.85;
+          name = 'Glacial Lich Monarch (Main Boss)';
+          break;
+        case 'PlagueBehemoth':
+          maxHp = 1800;
+          dmg = 44;
+          spd = 0.75;
+          name = 'Rotting Plague Behemoth (Main Boss)';
+          break;
+        case 'VoidEmperor':
+          maxHp = 2200;
+          dmg = 48;
           spd = 1.0;
-          name = 'Cthulhu Abyssal Squid';
+          name = 'Arch-Void Emperor (Main Boss)';
           break;
         case 'GraveDragun':
-          maxHp = 1500;
-          dmg = 42;
-          spd = 0.6;
-          name = 'Grave-Born Skeleton Dragun';
+          maxHp = 2600;
+          dmg = 52;
+          spd = 0.7;
+          name = 'Grave-Born Dragun (Main Boss)';
+          break;
+        case 'ChaosHydra':
+          maxHp = 3000;
+          dmg = 56;
+          spd = 0.8;
+          name = '100-Headed Chaos Hydra (Main Boss)';
+          break;
+        case 'FrostDrake':
+          maxHp = 500;
+          dmg = 25;
+          spd = 1.2;
+          name = 'Rime-Wing Frost Drake';
+          break;
+        case 'NecroConstruct':
+          maxHp = 520;
+          dmg = 26;
+          spd = 0.8;
+          name = 'Osseous Bone Construct';
+          break;
+        case 'VoidStalker':
+          maxHp = 560;
+          dmg = 28;
+          spd = 1.6;
+          name = 'Ethereal Void Stalker';
+          break;
+        case 'SolarGolem':
+          maxHp = 600;
+          dmg = 30;
+          spd = 0.85;
+          name = 'Solar Arch-Golem';
+          break;
+        case 'ShadowHarpy':
+          maxHp = 380;
+          dmg = 18;
+          spd = 1.65;
+          name = 'Gale Shadow Harpy';
+          break;
+        case 'MagmaWyrm':
+          maxHp = 450;
+          dmg = 22;
+          spd = 1.1;
+          name = 'Brimstone Magma Wyrm';
+          break;
+        case 'ChaosOrbitor':
+          maxHp = 540;
+          dmg = 27;
+          spd = 1.25;
+          name = 'Arcane Chaos Orbitor';
+          break;
+        case 'BrimstoneSerpent':
+          maxHp = 470;
+          dmg = 24;
+          spd = 1.15;
+          name = 'Venom Brimstone Serpent';
           break;
       }
 
-      const isBoss = s.type === 'SkeletonKing' || s.type === 'VampireLord' || s.type === 'ChimeraBeast' || s.type === 'SmelterGiant' || s.type === 'GraveDragun' || s.type === 'WerewolfKing' || s.type === 'VampireNoble' || s.type === 'CountDracula' || s.type === 'CthulhuSquid';
-      const size = s.type === 'GraveDragun' ? 56 : s.type === 'CthulhuSquid' ? 48 : s.type === 'CountDracula' ? 38 : s.type === 'VampireNoble' ? 32 : s.type === 'WerewolfKing' ? 36 : s.type === 'SmelterGiant' ? 44 : s.type === 'ChimeraBeast' ? 36 : s.type === 'VampireLord' ? 30 : s.type === 'SkeletonKing' ? 28 : s.type === 'BloodFiend' ? 22 : s.type === 'Zombie' ? 17 : 16;
-      const xpReward = s.type === 'GraveDragun' ? 600 : s.type === 'CthulhuSquid' ? 500 : s.type === 'CountDracula' ? 400 : s.type === 'VampireNoble' ? 300 : s.type === 'WerewolfKing' ? 200 : s.type === 'SmelterGiant' ? 350 : s.type === 'ChimeraBeast' ? 250 : s.type === 'VampireLord' ? 180 : s.type === 'SkeletonKing' ? 120 : s.type === 'BloodFiend' ? 32 + level.floorIndex * 4 : 15 + level.floorIndex * 3;
-      const attackCooldown = s.type === 'GraveDragun' ? 100 : s.type === 'CthulhuSquid' ? 90 : s.type === 'CountDracula' ? 85 : s.type === 'VampireNoble' ? 80 : s.type === 'WerewolfKing' ? 75 : s.type === 'SmelterGiant' ? 110 : s.type === 'ChimeraBeast' ? 80 : s.type === 'VampireLord' ? 90 : s.type === 'SkeletonKing' ? 95 : 70;
-      const color = s.type === 'GraveDragun' ? '#dc2626' : s.type === 'CthulhuSquid' ? '#0d9488' : s.type === 'CountDracula' ? '#b91c1c' : s.type === 'VampireNoble' ? '#ec4899' : s.type === 'WerewolfKing' ? '#1e293b' : s.type === 'SmelterGiant' ? '#ea580c' : s.type === 'ChimeraBeast' ? '#16a34a' : s.type === 'VampireLord' ? '#991b1b' : s.type === 'SkeletonKing' ? '#cbd5e1' : s.type === 'BloodFiend' ? '#7f1d1d' : s.type === 'DragonCultist' ? '#f97316' : s.type === 'Werewolf' ? '#4b5563' : s.type === 'Zombie' ? '#15803d' : s.type === 'Ghost' ? '#93c5fd' : s.type === 'Hollow' ? '#a21caf' : '#a1a1aa';
+      const isMainBoss = s.type === 'WerewolfKing' || s.type === 'VampireNoble' || s.type === 'SmelterGiant' || s.type === 'CthulhuSquid' || s.type === 'FrostLich' || s.type === 'PlagueBehemoth' || s.type === 'VoidEmperor' || s.type === 'GraveDragun' || s.type === 'ChaosHydra' || s.type === 'CountDracula';
+      const isSubBoss = s.type === 'SkeletonKing' || s.type === 'ChimeraBeast' || s.type === 'GargoyleTitan' || s.type === 'ShadowHarpy' || s.type === 'MagmaWyrm' || s.type === 'BrimstoneSerpent' || s.type === 'FrostDrake' || s.type === 'Leviathan' || s.type === 'NecroConstruct' || s.type === 'BloodFiend' || s.type === 'VoidStalker' || s.type === 'SolarGolem' || s.type === 'ChaosOrbitor' || s.type === 'VampireLord';
+      const isBoss = isMainBoss || isSubBoss;
+
+      const size = s.type === 'ChaosHydra' ? 70 : s.type === 'GraveDragun' ? 68 : s.type === 'VoidEmperor' ? 66 : s.type === 'CountDracula' ? 64 : s.type === 'CthulhuSquid' ? 62 : s.type === 'PlagueBehemoth' ? 60 : s.type === 'SmelterGiant' ? 58 : s.type === 'FrostLich' ? 56 : s.type === 'VampireNoble' ? 52 : s.type === 'WerewolfKing' ? 48 : isSubBoss ? 32 : s.type === 'BloodFiend' ? 22 : s.type === 'Zombie' ? 17 : 16;
+      const xpReward = isMainBoss ? 600 + level.floorIndex * 150 : isSubBoss ? 300 + level.floorIndex * 60 : 25 + level.floorIndex * 5;
+      const attackCooldown = isMainBoss ? 80 : isSubBoss ? 75 : 70;
+      const color = s.type === 'ChaosHydra' ? '#ec4899' : s.type === 'GraveDragun' ? '#dc2626' : s.type === 'VoidEmperor' ? '#7e22ce' : s.type === 'CountDracula' ? '#b91c1c' : s.type === 'PlagueBehemoth' ? '#65a30d' : s.type === 'FrostLich' ? '#38bdf8' : s.type === 'CthulhuSquid' ? '#0d9488' : s.type === 'SmelterGiant' ? '#ea580c' : s.type === 'VampireNoble' ? '#be185d' : s.type === 'WerewolfKing' ? '#1e293b' : s.type === 'SolarGolem' ? '#eab308' : s.type === 'Leviathan' ? '#0369a1' : s.type === 'FrostDrake' ? '#0284c7' : s.type === 'VoidStalker' ? '#a855f7' : s.type === 'ChaosOrbitor' ? '#f43f5e' : s.type === 'NecroConstruct' ? '#a3e635' : s.type === 'GargoyleTitan' ? '#71717a' : s.type === 'ChimeraBeast' ? '#16a34a' : s.type === 'ShadowHarpy' ? '#6366f1' : s.type === 'SkeletonKing' ? '#e2e8f0' : '#a1a1aa';
 
       return {
         id: `enemy_${Date.now()}_${idx}`,
@@ -325,7 +476,7 @@ export default function DungeonCanvas({
   const isWallOrSolid = (tx: number, ty: number): boolean => {
     if (tx < 0 || tx >= level.width || ty < 0 || ty >= level.height) return true;
     const tile = level.grid[ty][tx];
-    return tile.type === 'Wall';
+    return tile.type === 'Wall' || tile.type === 'SecretWall' || tile.type === 'SecretDoor';
   };
 
   // Helper: check circle-circle collision
@@ -389,6 +540,54 @@ export default function DungeonCanvas({
     }
   };
 
+  const triggerInvisibilityPotion = () => {
+    if (player.invisibilityPotions <= 0) {
+      spawnDamageNumber(player.x, player.y - 12, 'No Invisibility Potions!', '#f43f5e');
+      return;
+    }
+    setPlayer(prev => ({
+      ...prev,
+      invisibilityPotions: prev.invisibilityPotions - 1,
+      invisibilityTimer: 14400, // 4 Minutes!
+    }));
+    playSound('spell');
+    spawnSplashParticles(player.x, player.y, '#38bdf8', 25);
+    spawnDamageNumber(player.x, player.y - 18, 'GHOST INVISIBILITY ACTIVE (4 MIN)! 👻', '#38bdf8');
+  };
+
+  const triggerMonsterPotion = () => {
+    if (player.monsterPotions <= 0) {
+      spawnDamageNumber(player.x, player.y - 12, 'No Monster Potions!', '#f43f5e');
+      return;
+    }
+    setPlayer(prev => ({
+      ...prev,
+      monsterPotions: prev.monsterPotions - 1,
+      monsterTransformTimer: 1800, // 30 seconds
+    }));
+    playSound('boss_roar');
+    spawnSplashParticles(player.x, player.y, '#ef4444', 30);
+    spawnDamageNumber(player.x, player.y - 18, 'TRANSFORMED INTO BLOOD MONSTER! 👹', '#ef4444');
+  };
+
+  const triggerVinesPotion = () => {
+    if (player.vinesPotions <= 0) {
+      spawnDamageNumber(player.x, player.y - 12, 'No Vines Potions!', '#f43f5e');
+      return;
+    }
+    setPlayer(prev => ({
+      ...prev,
+      vinesPotions: prev.vinesPotions - 1,
+    }));
+    playSound('spell');
+    enemiesRef.current.forEach(e => {
+      e.rootedTimer = 180; // 3 seconds root
+      spawnSplashParticles(e.x, e.y, '#22c55e', 15);
+      spawnDamageNumber(e.x, e.y - 12, 'ROOTED IN VINES (3S)! 🌿', '#22c55e');
+    });
+    spawnDamageNumber(player.x, player.y - 18, 'ENTANGLED ALL ENEMIES IN VINES! 🌿', '#22c55e');
+  };
+
   // Keyboard and Mouse Event Listeners
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -408,6 +607,21 @@ export default function DungeonCanvas({
       // Trigger E Spell ('e')
       if (key === 'e') {
         triggerESpell();
+      }
+
+      // Hotkey 1: Invisibility Potion
+      if (key === '1') {
+        triggerInvisibilityPotion();
+      }
+
+      // Hotkey 2: Monster Potion
+      if (key === '2') {
+        triggerMonsterPotion();
+      }
+
+      // Hotkey 3: Vines Potion
+      if (key === '3') {
+        triggerVinesPotion();
       }
 
       // Open sheet ('i' or 'c')
@@ -856,6 +1070,78 @@ export default function DungeonCanvas({
     let manaRegenRate = (1.0 + player.stats.arcane * 0.1) / 60; // 60 updates/sec
     let nextMana = Math.min(player.maxMana, player.mana + manaRegenRate);
 
+    // Decrement potion timers
+    const nextInvisTimer = Math.max(0, player.invisibilityTimer - 1);
+    const nextMonsterTimer = Math.max(0, player.monsterTransformTimer - 1);
+
+    // Step-on tile interactions for special tiles
+    const tileGridX = Math.floor(player.x / 32);
+    const tileGridY = Math.floor(player.y / 32);
+    if (tileGridX >= 0 && tileGridX < level.width && tileGridY >= 0 && tileGridY < level.height) {
+      const curTile = level.grid[tileGridY][tileGridX];
+      if (curTile.type === 'GreenDotTile') {
+        curTile.type = 'Floor'; // switch pressed
+        playSound('chest');
+        spawnSplashParticles(player.x, player.y, '#22c55e', 25);
+        spawnDamageNumber(player.x, player.y - 15, 'GREEN DOT SWITCH PRESSED! 🟢', '#22c55e');
+
+        let unsealed = 0;
+        for (let sy = 0; sy < level.height; sy++) {
+          for (let sx = 0; sx < level.width; sx++) {
+            if (level.grid[sy][sx].type === 'SecretWall' || level.grid[sy][sx].type === 'SecretDoor') {
+              level.grid[sy][sx].type = 'Floor';
+              spawnSplashParticles(sx * 32 + 16, sy * 32 + 16, '#fbbf24', 8);
+              unsealed++;
+            }
+          }
+        }
+        if (unsealed > 0) {
+          spawnDamageNumber(player.x, player.y - 32, 'SECRET CHAMBER UNSEALED! 🔓', '#fbbf24');
+        }
+        setLevel({ ...level });
+      } else if (curTile.type === 'Scroll') {
+        curTile.type = 'Floor';
+        playSound('spell');
+        spawnSplashParticles(player.x, player.y, '#eab308', 15);
+        spawnDamageNumber(player.x, player.y - 15, '📜 Ancient Scroll: +25 XP & Area Map Revealed!', '#fbbf24');
+        for (let ry = Math.max(0, tileGridY - 10); ry <= Math.min(level.height - 1, tileGridY + 10); ry++) {
+          for (let rx = Math.max(0, tileGridX - 10); rx <= Math.min(level.width - 1, tileGridX + 10); rx++) {
+            level.grid[ry][rx].explored = true;
+          }
+        }
+        setPlayer(prev => ({ ...prev, xp: prev.xp + 25, mana: Math.min(prev.maxMana, prev.mana + 30) }));
+        setLevel({ ...level });
+      } else if (curTile.type === 'SkeletalRemains' || curTile.type === 'Ruins') {
+        curTile.type = 'Floor';
+        playSound('chest');
+        const lootedGold = Math.floor(Math.random() * 30) + 15;
+        const foundKey = Math.random() < 0.40;
+        spawnSplashParticles(player.x, player.y, '#e2e8f0', 12);
+        spawnDamageNumber(player.x, player.y - 15, `Searched Remains: +${lootedGold} Gold 🪙`, '#fbbf24');
+        if (foundKey) {
+          spawnDamageNumber(player.x, player.y - 30, 'FOUND SILVER KEY! 🗝️', '#38bdf8');
+        }
+        setPlayer(prev => ({ ...prev, gold: prev.gold + lootedGold, silverKeys: prev.silverKeys + (foundKey ? 1 : 0) }));
+        setLevel({ ...level });
+      } else if (curTile.type === 'Crest') {
+        curTile.type = 'Floor';
+        playSound('levelup');
+        spawnSplashParticles(player.x, player.y, '#ef4444', 20);
+        spawnDamageNumber(player.x, player.y - 15, '👑 ANCIENT VAMPIRE CREST CLAIMED!', '#ef4444');
+        spawnDamageNumber(player.x, player.y - 30, '+60 Gold & +1 Stat Point!', '#eab308');
+        setPlayer(prev => ({ ...prev, gold: prev.gold + 60, statPoints: prev.statPoints + 1 }));
+        setLevel({ ...level });
+      } else if (curTile.type === 'MonsterStatue') {
+        curTile.type = 'Floor';
+        playSound('chest');
+        spawnSplashParticles(player.x, player.y, '#a855f7', 15);
+        spawnDamageNumber(player.x, player.y - 15, '🗿 Monster Statue Searched!', '#a855f7');
+        spawnDamageNumber(player.x, player.y - 30, '+1 Monster Potion 🧪', '#38bdf8');
+        setPlayer(prev => ({ ...prev, monsterPotions: prev.monsterPotions + 1, gold: prev.gold + 25 }));
+        setLevel({ ...level });
+      }
+    }
+
     // Active block shields
     let shieldCool = player.shieldCooldown;
     let shieldActive = player.shieldActive;
@@ -875,6 +1161,8 @@ export default function DungeonCanvas({
       y: player.y,
       facing: nextFacing,
       mana: nextMana,
+      invisibilityTimer: nextInvisTimer,
+      monsterTransformTimer: nextMonsterTimer,
       dashActiveTime: Math.max(0, prev.dashActiveTime - 1),
       dashCooldown: Math.max(0, prev.dashCooldown - 1),
       shieldCooldown: shieldCool,
@@ -1114,6 +1402,29 @@ export default function DungeonCanvas({
     // Update enemies list, filter dead ones to spawn gold/xp
     enemiesRef.current = enemiesRef.current.filter(e => {
       if (e.health <= 0) {
+        // Check if main boss has Phase 2 (Awakened Demon form)
+        if (e.isBoss && !e.isAwakenedForm) {
+          e.isAwakenedForm = true;
+          e.health = Math.round(e.maxHealth * 1.3);
+          e.damage = Math.round(e.damage * 1.4);
+          e.speed = e.speed * 1.25;
+          e.name = `🔥 DEMON FORM: ${e.name}`;
+          screenShakeRef.current = 25;
+          playSound('boss_roar');
+          spawnDamageNumber(e.x, e.y - 25, "AWAKENED DEMON FORM ACTIVE! 🔥", "#ef4444");
+          spawnSplashParticles(e.x, e.y, "#ef4444", 40);
+          spawnSplashParticles(e.x, e.y, "#fbbf24", 30);
+
+          // Drops Golden Secret Key & 2 Silver Keys
+          setPlayer(prev => ({
+            ...prev,
+            hasGoldenSecretKey: true,
+            silverKeys: prev.silverKeys + 2,
+          }));
+          spawnDamageNumber(player.x, player.y - 35, "UNLOCKED SECRET TREASURE KEY! 🔑", "#fbbf24");
+          return true; // Keep alive for Phase 2!
+        }
+
         // Spawn loot & progression rewards!
         playSound('chest');
         spawnSplashParticles(e.x, e.y, '#f59e0b', 15); // gold sparks
@@ -1139,7 +1450,6 @@ export default function DungeonCanvas({
 
           // Choose random new boon options to select
           const allBoons = ['Vampiric Touch', "Dragon's Breath", 'Blood Shield', 'Double Cast', 'Shadow Step'];
-          // Pick 3 random boons player doesn't already have, or just pick 3 random
           selectionBoons = allBoons.filter(b => !player.activeBoons.includes(b)).slice(0, 3);
           if (selectionBoons.length === 0) {
             selectionBoons = ['Vitality Surge', 'Strength Surge', 'Arcane Focus'].slice(0, 3);
@@ -1178,6 +1488,21 @@ export default function DungeonCanvas({
         }
 
         return false;
+      }
+
+      // Check rooted timer from Vines potion
+      if (e.rootedTimer && e.rootedTimer > 0) {
+        e.rootedTimer--;
+        if (gameFrame.current % 15 === 0) {
+          spawnSplashParticles(e.x, e.y, '#22c55e', 2);
+        }
+        return true; // Cannot move while entangled
+      }
+
+      // Check player ghost invisibility
+      if (player.invisibilityTimer > 0) {
+        e.state = 'idle';
+        return true; // Cannot target invisible player
       }
 
       // Enemy AI behaviors
@@ -1715,6 +2040,193 @@ export default function DungeonCanvas({
             } else {
               e.state = 'chase';
               e.stateTimer = 50;
+            }
+          }
+
+          if (e.state === 'chase' && dist > 15) {
+            const angle = Math.atan2(player.y - e.y, player.x - e.x);
+            e.x += Math.cos(angle) * e.speed;
+            e.y += Math.sin(angle) * e.speed;
+            if (dist < 34 && gameFrame.current % 32 === 0) {
+              damagePlayer(e.damage);
+            }
+          }
+        } else if (e.type === 'FrostLich') {
+          // Glacial Lich Monarch Main Boss AI
+          if (e.stateTimer <= 0) {
+            const r = Math.random();
+            if (r < 0.45) {
+              e.state = 'attack';
+              e.stateTimer = 55;
+              spawnDamageNumber(e.x, e.y - 12, "FROST NOVA BURST!", "#38bdf8");
+              playSound('spell');
+              screenShakeRef.current = 14;
+              for (let i = 0; i < 12; i++) {
+                const angle = (i * Math.PI) / 6;
+                projectilesRef.current.push({
+                  id: `lich_ice_${Date.now()}_${i}`,
+                  x: e.x, y: e.y,
+                  vx: Math.cos(angle) * 3.2, vy: Math.sin(angle) * 3.2,
+                  size: 7, damage: 24, isPlayer: false, color: '#38bdf8', duration: 130, type: 'blood_orb'
+                });
+              }
+            } else {
+              e.state = 'chase';
+              e.stateTimer = 45;
+            }
+          }
+          if (e.state === 'chase' && dist > 15) {
+            const angle = Math.atan2(player.y - e.y, player.x - e.x);
+            e.x += Math.cos(angle) * e.speed;
+            e.y += Math.sin(angle) * e.speed;
+            if (dist < 32 && gameFrame.current % 30 === 0) damagePlayer(e.damage);
+          }
+        } else if (e.type === 'PlagueBehemoth') {
+          // Rotting Plague Behemoth Main Boss AI
+          if (e.stateTimer <= 0) {
+            const r = Math.random();
+            if (r < 0.50) {
+              e.state = 'boss_rage';
+              e.stateTimer = 60;
+              spawnDamageNumber(e.x, e.y - 12, "TOXIC SLIME NOVA!", "#65a30d");
+              playSound('boss_roar');
+              screenShakeRef.current = 16;
+              for (let i = 0; i < 8; i++) {
+                const angle = (i * Math.PI) / 4;
+                projectilesRef.current.push({
+                  id: `plague_slime_${Date.now()}_${i}`,
+                  x: e.x, y: e.y,
+                  vx: Math.cos(angle) * 2.6, vy: Math.sin(angle) * 2.6,
+                  size: 9, damage: 26, isPlayer: false, color: '#84cc16', duration: 140, type: 'blood_orb'
+                });
+              }
+            } else {
+              e.state = 'chase';
+              e.stateTimer = 40;
+            }
+          }
+          if (e.state === 'chase' && dist > 15) {
+            const angle = Math.atan2(player.y - e.y, player.x - e.x);
+            e.x += Math.cos(angle) * e.speed;
+            e.y += Math.sin(angle) * e.speed;
+            if (dist < 34 && gameFrame.current % 30 === 0) damagePlayer(e.damage);
+          }
+        } else if (e.type === 'VoidEmperor') {
+          // Arch-Void Emperor Main Boss AI
+          if (e.stateTimer <= 0) {
+            const r = Math.random();
+            if (r < 0.45) {
+              e.state = 'boss_rage';
+              e.stateTimer = 50;
+              spawnDamageNumber(e.x, e.y - 12, "VOID SINGULARITY!", "#a855f7");
+              playSound('spell');
+              screenShakeRef.current = 18;
+              const pAngle = Math.atan2(e.y - player.y, e.x - player.x);
+              player.x += Math.cos(pAngle) * 35;
+              player.y += Math.sin(pAngle) * 35;
+              damagePlayer(22);
+              spawnSplashParticles(player.x, player.y, '#7e22ce', 20);
+            } else {
+              e.state = 'chase';
+              e.stateTimer = 40;
+            }
+          }
+          if (e.state === 'chase' && dist > 15) {
+            const angle = Math.atan2(player.y - e.y, player.x - e.x);
+            e.x += Math.cos(angle) * e.speed;
+            e.y += Math.sin(angle) * e.speed;
+            if (dist < 36 && gameFrame.current % 28 === 0) damagePlayer(e.damage);
+          }
+        } else if (e.type === 'ChaosHydra') {
+          // 100-Headed Chaos Hydra Main Boss AI
+          if (e.stateTimer <= 0) {
+            const r = Math.random();
+            if (r < 0.55) {
+              e.state = 'attack';
+              e.stateTimer = 60;
+              spawnDamageNumber(e.x, e.y - 12, "CHAOS HYDRA BARRAGE!", "#ec4899");
+              playSound('boss_roar');
+              screenShakeRef.current = 20;
+              const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7', '#ec4899'];
+              for (let i = 0; i < 10; i++) {
+                const angle = (i * Math.PI) / 5;
+                projectilesRef.current.push({
+                  id: `hydra_head_${Date.now()}_${i}`,
+                  x: e.x, y: e.y,
+                  vx: Math.cos(angle) * 3.4, vy: Math.sin(angle) * 3.4,
+                  size: 8, damage: 28, isPlayer: false, color: colors[i % colors.length], duration: 130, type: 'fireball'
+                });
+              }
+            } else {
+              e.state = 'chase';
+              e.stateTimer = 40;
+            }
+          }
+          if (e.state === 'chase' && dist > 15) {
+            const angle = Math.atan2(player.y - e.y, player.x - e.x);
+            e.x += Math.cos(angle) * e.speed;
+            e.y += Math.sin(angle) * e.speed;
+            if (dist < 38 && gameFrame.current % 25 === 0) damagePlayer(e.damage);
+          }
+        } else {
+          // --- SUB-BOSS SPECIAL ATTACK ABILITIES ---
+          if (e.stateTimer <= 0 && gameFrame.current % 90 === 0 && dist < 180) {
+            e.stateTimer = 45;
+            if (e.type === 'SkeletonKing') {
+              spawnDamageNumber(e.x, e.y - 10, "Bone Shield Whirl!", "#cbd5e1");
+              for (let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI) / 3;
+                projectilesRef.current.push({
+                  id: `sub_bone_${Date.now()}_${i}`,
+                  x: e.x, y: e.y,
+                  vx: Math.cos(angle) * 2.5, vy: Math.sin(angle) * 2.5,
+                  size: 5, damage: 16, isPlayer: false, color: '#e2e8f0', duration: 100, type: 'bone'
+                });
+              }
+            } else if (e.type === 'FrostDrake') {
+              spawnDamageNumber(e.x, e.y - 10, "Ice Shard Volley!", "#38bdf8");
+              const pAngle = Math.atan2(player.y - e.y, player.x - e.x);
+              for (let off = -0.3; off <= 0.3; off += 0.15) {
+                projectilesRef.current.push({
+                  id: `sub_ice_${Date.now()}_${off}`,
+                  x: e.x, y: e.y,
+                  vx: Math.cos(pAngle + off) * 3.5, vy: Math.sin(pAngle + off) * 3.5,
+                  size: 6, damage: 18, isPlayer: false, color: '#38bdf8', duration: 110, type: 'blood_orb'
+                });
+              }
+            } else if (e.type === 'GargoyleTitan') {
+              spawnDamageNumber(e.x, e.y - 10, "Petrify Slam!", "#71717a");
+              if (dist < 90) {
+                damagePlayer(20);
+                spawnSplashParticles(player.x, player.y, '#71717a', 12);
+              }
+            } else if (e.type === 'SolarGolem') {
+              spawnDamageNumber(e.x, e.y - 10, "Solar Laser Beam!", "#eab308");
+              const pAngle = Math.atan2(player.y - e.y, player.x - e.x);
+              projectilesRef.current.push({
+                id: `solar_beam_${Date.now()}`,
+                x: e.x, y: e.y,
+                vx: Math.cos(pAngle) * 5.0, vy: Math.sin(pAngle) * 5.0,
+                size: 10, damage: 24, isPlayer: false, color: '#facc15', duration: 90, type: 'fireball'
+              });
+            } else if (e.type === 'VoidStalker') {
+              spawnDamageNumber(e.x, e.y - 10, "Shadow Blink!", "#a855f7");
+              spawnSplashParticles(e.x, e.y, '#a855f7', 10);
+              const bAngle = Math.atan2(player.y - e.y, player.x - e.x);
+              e.x = player.x - Math.cos(bAngle) * 40;
+              e.y = player.y - Math.sin(bAngle) * 40;
+              spawnSplashParticles(e.x, e.y, '#a855f7', 10);
+            } else if (e.type === 'ChaosOrbitor') {
+              spawnDamageNumber(e.x, e.y - 10, "Chaos Pulse!", "#f43f5e");
+              for (let i = 0; i < 8; i++) {
+                const angle = (i * Math.PI) / 4;
+                projectilesRef.current.push({
+                  id: `chaos_orb_${Date.now()}_${i}`,
+                  x: e.x, y: e.y,
+                  vx: Math.cos(angle) * 2.8, vy: Math.sin(angle) * 2.8,
+                  size: 6, damage: 20, isPlayer: false, color: '#fb7185', duration: 120, type: 'blood_orb'
+                });
+              }
             }
           }
 
@@ -2268,19 +2780,24 @@ export default function DungeonCanvas({
       }
     }
 
-    // 3. Stairs trigger check
-    // Stairs are unlocked when the boss of this level dies
-    const isBossDeadOrMissing = enemiesRef.current.filter(e => e.isBoss).length === 0;
+    // 3. Stairs trigger check (Forward Portal)
     if (currentTile.type === 'Stairs') {
-      if (isBossDeadOrMissing) {
-        onNextFloor();
-      } else {
-        // Inform player that stairs are guarded
-        spawnDamageNumber(player.x, player.y - 12, 'Boss guards the portal stairs!', '#f43f5e');
-        // bounce back player slightly
-        player.x -= player.facing === 'left' ? -15 : player.facing === 'right' ? 15 : 0;
-        player.y -= player.facing === 'up' ? -15 : player.facing === 'down' ? 15 : 0;
+      playSound('teleport');
+      onNextFloor();
+    }
+
+    // 4. Return Portal trigger check (Portal Back)
+    if (currentTile.type === 'PortalBack') {
+      if (onPrevFloor) {
+        playSound('teleport');
+        onPrevFloor();
       }
+    }
+
+    // 5. Escape Portal trigger check (Floor 4 Victory Portal)
+    if (currentTile.type === 'EscapePortal') {
+      playSound('teleport');
+      onVictory();
     }
   };
 
@@ -2308,8 +2825,8 @@ export default function DungeonCanvas({
     const startY = Math.max(0, Math.floor(cy / 32));
     const endY = Math.min(level.height, Math.ceil((cy + dimensions.height) / 32));
 
-    // Theme color adjustments
-    const isLavaTheme = level.floorTheme === 'DragunMaw' || level.floorTheme === 'InnerSanctum';
+    // Dynamic theme colors that visibly darken with every floor level
+    const dColors = getDungeonColors(level.floorTheme, level.floorIndex);
 
     // 1. Draw Grid Tiles
     for (let y = startY; y < endY; y++) {
@@ -2326,27 +2843,81 @@ export default function DungeonCanvas({
         }
 
         // Draw Floors
-        if (tile.type === 'Floor' || tile.type === 'Chest' || tile.type === 'Stairs' || tile.type === 'Door') {
-          ctx.fillStyle = isLavaTheme ? '#1e1b18' : '#1c1917'; // Magma stone vs cool slate grey
-          ctx.fillRect(screenX, screenY, 32, 32);
+        if (tile.type === 'Floor' || tile.type === 'Chest' || tile.type === 'Stairs' || tile.type === 'PortalBack' || tile.type === 'EscapePortal' || tile.type === 'Door') {
+          if (tile.decoration === 'boss_chamber') {
+            // GOTHIC BOSS CHAMBER CUSTOM TILESET WITH UNIQUE COLORS FOR EACH MAIN BOSS LAIR
+            let chamberBg = '#3f1d2e';
+            let runeColor = '#f43f5e';
+            let accentBorder = '#881337';
 
-          // Render subtle retro brick borders
-          ctx.strokeStyle = isLavaTheme ? '#2d231b' : '#292524';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(screenX, screenY, 32, 32);
+            if (level.floorTheme === 'VampireCrypt') {
+              chamberBg = '#450a0a'; runeColor = '#f43f5e'; accentBorder = '#9f1239';
+            } else if (level.floorTheme === 'GothicCathedral') {
+              chamberBg = '#1e1b4b'; runeColor = '#818cf8'; accentBorder = '#3730a3';
+            } else if (level.floorTheme === 'DragunMaw') {
+              chamberBg = '#451a03'; runeColor = '#f59e0b'; accentBorder = '#78350f';
+            } else if (level.floorTheme === 'AbyssalDepths') {
+              chamberBg = '#022c22'; runeColor = '#2dd4bf'; accentBorder = '#065f46';
+            } else if (level.floorTheme === 'FrostSpire') {
+              chamberBg = '#082f49'; runeColor = '#38bdf8'; accentBorder = '#075985';
+            } else if (level.floorTheme === 'NecroCatacombs') {
+              chamberBg = '#1a2e05'; runeColor = '#a3e635'; accentBorder = '#365314';
+            } else if (level.floorTheme === 'VoidBastion') {
+              chamberBg = '#3b0764'; runeColor = '#c084fc'; accentBorder = '#581c87';
+            } else if (level.floorTheme === 'SolarForge') {
+              chamberBg = '#713f12'; runeColor = '#facc15'; accentBorder = '#854d0e';
+            } else if (level.floorTheme === 'ChaosChamber') {
+              chamberBg = '#701a75'; runeColor = '#f472b6'; accentBorder = '#86198f';
+            } else if (level.floorTheme === 'InnerSanctum') {
+              chamberBg = '#581c87'; runeColor = '#fbbf24'; accentBorder = '#7e22ce';
+            }
+
+            ctx.fillStyle = chamberBg;
+            ctx.fillRect(screenX, screenY, 32, 32);
+
+            // Gothic Diamond / Cross Runes floor tiles
+            ctx.strokeStyle = accentBorder;
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(screenX, screenY, 32, 32);
+
+            // Glowing center rune
+            ctx.fillStyle = runeColor;
+            ctx.beginPath();
+            ctx.arc(screenX + 16, screenY + 16, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Diamond inlay rune line
+            ctx.strokeStyle = runeColor;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(screenX + 16, screenY + 4);
+            ctx.lineTo(screenX + 28, screenY + 16);
+            ctx.lineTo(screenX + 16, screenY + 28);
+            ctx.lineTo(screenX + 4, screenY + 16);
+            ctx.closePath();
+            ctx.stroke();
+          } else {
+            ctx.fillStyle = dColors.floor;
+            ctx.fillRect(screenX, screenY, 32, 32);
+
+            // Render subtle retro brick borders
+            ctx.strokeStyle = dColors.floorBorder;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(screenX, screenY, 32, 32);
+          }
         }
 
         // Draw Walls
         if (tile.type === 'Wall') {
           // Double layered brick shadows
-          ctx.fillStyle = isLavaTheme ? '#311b11' : '#1c1d21'; // Deep reddish brown vs Dark granite
+          ctx.fillStyle = dColors.wall;
           ctx.fillRect(screenX, screenY, 32, 32);
 
           // Crack detail or lighting highlight
-          ctx.fillStyle = isLavaTheme ? '#5a2512' : '#272a31';
+          ctx.fillStyle = dColors.wallHighlight;
           ctx.fillRect(screenX, screenY, 32, 6);
 
-          ctx.strokeStyle = isLavaTheme ? '#1c100a' : '#0e1013';
+          ctx.strokeStyle = dColors.wallBorder;
           ctx.lineWidth = 1.5;
           ctx.strokeRect(screenX, screenY, 32, 32);
 
@@ -2409,20 +2980,70 @@ export default function DungeonCanvas({
           ctx.fillRect(screenX + 22, screenY + 10, 2, 16);
         }
 
-        // Draw Stairs Nexus
+        // Draw Forward Portal (Stairs)
         if (tile.type === 'Stairs') {
-          // Dark swirling portal
-          const pAngle = gameFrame.current * 0.1;
-          ctx.fillStyle = '#4c1d95'; // Purple steps
+          const pAngle = gameFrame.current * 0.08;
+          const pulse = Math.sin(gameFrame.current * 0.1) * 2;
+          ctx.fillStyle = '#3b0764'; // Deep violet core
           ctx.beginPath();
-          ctx.arc(screenX + 16, screenY + 16, 12, 0, Math.PI * 2);
+          ctx.arc(screenX + 16, screenY + 16, 13 + pulse, 0, Math.PI * 2);
           ctx.fill();
 
-          ctx.strokeStyle = '#c084fc';
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#c084fc'; // Glowing magenta swirl ring
+          ctx.lineWidth = 2.5;
           ctx.beginPath();
-          ctx.arc(screenX + 16, screenY + 16, 12, pAngle, pAngle + Math.PI);
+          ctx.arc(screenX + 16, screenY + 16, 12 + pulse, pAngle, pAngle + Math.PI);
           ctx.stroke();
+
+          // Label text above portal
+          ctx.fillStyle = '#e9d5ff';
+          ctx.font = 'bold 9px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`FLOOR ${level.floorIndex + 1} 🌀`, screenX + 16, screenY - 5);
+        }
+
+        // Draw Return Portal (Portal Back)
+        if (tile.type === 'PortalBack') {
+          const pAngle = -gameFrame.current * 0.08;
+          const pulse = Math.cos(gameFrame.current * 0.1) * 2;
+          ctx.fillStyle = '#082f49'; // Deep cyan core
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 16, 13 + pulse, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = '#38bdf8'; // Sky blue swirl ring
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 16, 12 + pulse, pAngle, pAngle + Math.PI);
+          ctx.stroke();
+
+          // Label text above portal
+          ctx.fillStyle = '#bae6fd';
+          ctx.font = 'bold 9px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`FLOOR ${level.floorIndex - 1} 🌀`, screenX + 16, screenY - 5);
+        }
+
+        // Draw Escape Portal (Floor 4 Victory)
+        if (tile.type === 'EscapePortal') {
+          const pAngle = gameFrame.current * 0.12;
+          const pulse = Math.sin(gameFrame.current * 0.12) * 3;
+          ctx.fillStyle = '#78350f'; // Golden bronze core
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 16, 14 + pulse, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = '#fbbf24'; // Radiant amber glow
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 16, 13 + pulse, pAngle, pAngle + Math.PI);
+          ctx.stroke();
+
+          // Label text above portal
+          ctx.fillStyle = '#fef08a';
+          ctx.font = 'bold 9px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('ESCAPE! ✨', screenX + 16, screenY - 5);
         }
 
         // Draw Cyril NPC (Arch-Mage)
@@ -2536,6 +3157,172 @@ export default function DungeonCanvas({
           // Potion highlight bubble
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(screenX + 13, screenY + 17, 2, 2);
+        }
+
+        // Draw Throne
+        if (tile.type === 'Throne') {
+          ctx.fillStyle = '#78350f'; // Dark mahogany wood
+          ctx.fillRect(screenX + 4, screenY + 2, 24, 28);
+          ctx.fillStyle = '#991b1b'; // Crimson velvet cushion
+          ctx.fillRect(screenX + 8, screenY + 6, 16, 20);
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillRect(screenX + 6, screenY + 2, 20, 3);
+          ctx.fillRect(screenX + 4, screenY + 16, 4, 12);
+          ctx.fillRect(screenX + 24, screenY + 16, 4, 12);
+        }
+
+        // Draw Armory
+        if (tile.type === 'Armory') {
+          ctx.fillStyle = '#451a03'; // Oak rack
+          ctx.fillRect(screenX + 4, screenY + 8, 24, 16);
+          ctx.strokeStyle = '#e2e8f0';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(screenX + 6, screenY + 6);
+          ctx.lineTo(screenX + 26, screenY + 26);
+          ctx.moveTo(screenX + 26, screenY + 6);
+          ctx.lineTo(screenX + 6, screenY + 26);
+          ctx.stroke();
+          ctx.fillStyle = '#dc2626';
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 16, 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Draw Kitchen
+        if (tile.type === 'Kitchen') {
+          ctx.fillStyle = '#78350f';
+          ctx.fillRect(screenX + 2, screenY + 16, 28, 12);
+          ctx.fillStyle = '#18181b';
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 12, 7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#22c55e';
+          const steamOff = Math.sin(gameFrame.current * 0.1) * 2;
+          ctx.beginPath();
+          ctx.arc(screenX + 14 + steamOff, screenY + 4, 2, 0, Math.PI * 2);
+          ctx.arc(screenX + 18 - steamOff, screenY + 2, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Draw WarRoom
+        if (tile.type === 'WarRoom') {
+          ctx.fillStyle = '#78350f'; // Map table
+          ctx.fillRect(screenX + 3, screenY + 6, 26, 20);
+          ctx.fillStyle = '#fef08a'; // Map scroll parchment
+          ctx.fillRect(screenX + 8, screenY + 10, 16, 12);
+          ctx.fillStyle = '#dc2626'; // Red troop marker
+          ctx.fillRect(screenX + 10, screenY + 12, 3, 3);
+          ctx.fillStyle = '#2563eb'; // Blue troop marker
+          ctx.fillRect(screenX + 18, screenY + 16, 3, 3);
+        }
+
+        // Draw TrainingRoom
+        if (tile.type === 'TrainingRoom') {
+          ctx.fillStyle = '#a16207'; // Target dummy stand
+          ctx.fillRect(screenX + 14, screenY + 18, 4, 12);
+          ctx.fillStyle = '#eab308'; // Straw torso
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 12, 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#dc2626';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 12, 4, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Draw SecretWall
+        if (tile.type === 'SecretWall') {
+          ctx.fillStyle = dColors.wall;
+          ctx.fillRect(screenX, screenY, 32, 32);
+          const glow = Math.sin(gameFrame.current * 0.08) * 0.3 + 0.7;
+          ctx.strokeStyle = `rgba(251, 191, 36, ${glow})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(screenX + 4, screenY + 4);
+          ctx.lineTo(screenX + 16, screenY + 16);
+          ctx.lineTo(screenX + 28, screenY + 28);
+          ctx.stroke();
+        }
+
+        // Draw GreenDotTile
+        if (tile.type === 'GreenDotTile') {
+          ctx.fillStyle = dColors.floor;
+          ctx.fillRect(screenX, screenY, 32, 32);
+          ctx.strokeStyle = dColors.floorBorder;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(screenX, screenY, 32, 32);
+          const pulse = Math.sin(gameFrame.current * 0.1) * 2 + 5;
+          ctx.fillStyle = '#22c55e';
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 16, pulse, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#86efac';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+
+        // Draw Scroll
+        if (tile.type === 'Scroll') {
+          const hoverY = Math.sin(gameFrame.current * 0.08) * 2;
+          ctx.fillStyle = '#fef08a'; // Parchment
+          ctx.fillRect(screenX + 10, screenY + 10 + hoverY, 12, 14);
+          ctx.fillStyle = '#dc2626'; // Red wax seal
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 17 + hoverY, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Draw MonsterStatue
+        if (tile.type === 'MonsterStatue') {
+          ctx.fillStyle = '#3f3f46'; // Pedestal
+          ctx.fillRect(screenX + 6, screenY + 20, 20, 10);
+          ctx.fillStyle = '#71717a'; // Statue wings & head
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 12, 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#ef4444';
+          ctx.fillRect(screenX + 13, screenY + 10, 2, 2);
+          ctx.fillRect(screenX + 17, screenY + 10, 2, 2);
+        }
+
+        // Draw Ruins
+        if (tile.type === 'Ruins') {
+          ctx.fillStyle = '#52525b'; // Broken pillars
+          ctx.fillRect(screenX + 4, screenY + 12, 10, 16);
+          ctx.fillRect(screenX + 18, screenY + 18, 10, 10);
+          ctx.fillStyle = '#16a34a'; // Moss accent
+          ctx.fillRect(screenX + 6, screenY + 14, 4, 4);
+        }
+
+        // Draw SkeletalRemains
+        if (tile.type === 'SkeletalRemains') {
+          ctx.fillStyle = '#e4e4e7'; // Skull
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 16, 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#18181b'; // Eye sockets
+          ctx.fillRect(screenX + 14, screenY + 15, 1.5, 1.5);
+          ctx.fillRect(screenX + 16.5, screenY + 15, 1.5, 1.5);
+          ctx.strokeStyle = '#e4e4e7';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(screenX + 10, screenY + 22);
+          ctx.lineTo(screenX + 22, screenY + 22);
+          ctx.stroke();
+        }
+
+        // Draw Crest
+        if (tile.type === 'Crest') {
+          const hoverY = Math.sin(gameFrame.current * 0.08) * 2;
+          ctx.fillStyle = '#dc2626'; // Crimson emblem
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 16 + hoverY, 7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#fbbf24'; // Gold crown trim
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
         }
       }
     }
@@ -3146,6 +3933,91 @@ export default function DungeonCanvas({
           ctx.fill();
         }
 
+      } else if (e.type === 'Leviathan') {
+        // Abyssal Sea Serpent Leviathan Boss
+        const pulse = Math.sin(gameFrame.current * 0.08) * 4;
+
+        // Oceanic aura water ripple ring
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(sx, sy, e.size + 12 + pulse, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Coiled serpent body
+        ctx.fillStyle = '#0369a1'; // Deep cobalt body
+        ctx.beginPath();
+        ctx.arc(sx, sy, e.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Sapphire scales pattern
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(sx - 10, sy - 8, 8, 0, Math.PI * 2);
+        ctx.arc(sx + 10, sy - 8, 8, 0, Math.PI * 2);
+        ctx.arc(sx, sy + 10, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Crested sea fin horns
+        ctx.fillStyle = '#0284c7';
+        ctx.beginPath();
+        ctx.moveTo(sx - 12, sy - 14);
+        ctx.lineTo(sx - 28, sy - 36);
+        ctx.lineTo(sx - 2, sy - 16);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(sx + 12, sy - 14);
+        ctx.lineTo(sx + 28, sy - 36);
+        ctx.lineTo(sx + 2, sy - 16);
+        ctx.fill();
+
+        // Glowing aquamarine eyes
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(sx - 8, sy - 4, 3.5, 3.5);
+        ctx.fillRect(sx + 4.5, sy - 4, 3.5, 3.5);
+
+      } else if (e.type === 'GargoyleTitan') {
+        // Petrified Stone Gargoyle Titan Sub-boss
+        ctx.fillStyle = '#3f3f46'; // Slate stone wings
+        const flap = Math.sin(gameFrame.current * 0.08) * 8;
+        ctx.beginPath();
+        ctx.moveTo(sx - 18, sy);
+        ctx.lineTo(sx - 42, sy - 18 + flap);
+        ctx.lineTo(sx - 4, sy + 8);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(sx + 18, sy);
+        ctx.lineTo(sx + 42, sy - 18 + flap);
+        ctx.lineTo(sx + 4, sy + 8);
+        ctx.fill();
+
+        // Stone core head
+        ctx.fillStyle = '#71717a';
+        ctx.beginPath();
+        ctx.arc(sx, sy, e.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Stone horns
+        ctx.fillStyle = '#27272a';
+        ctx.beginPath();
+        ctx.moveTo(sx - 8, sy - 10);
+        ctx.lineTo(sx - 16, sy - 26);
+        ctx.lineTo(sx - 2, sy - 10);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(sx + 8, sy - 10);
+        ctx.lineTo(sx + 16, sy - 26);
+        ctx.lineTo(sx + 2, sy - 10);
+        ctx.fill();
+
+        // Glowing red stone eye slots
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(sx - 6, sy - 3, 3, 3);
+        ctx.fillRect(sx + 3, sy - 3, 3, 3);
+
       } else if (e.type === 'GraveDragun') {
         // Epic Giant Scaled Dragon
         ctx.fillStyle = '#1e1b18'; // Charcoal Dragon Wings
@@ -3187,6 +4059,167 @@ export default function DungeonCanvas({
         ctx.fillStyle = '#f59e0b';
         ctx.fillRect(sx - 8, sy - 4, 3, 4);
         ctx.fillRect(sx + 5, sy - 4, 3, 4);
+
+      } else if (e.type === 'FrostLich') {
+        // Glacial Lich Monarch
+        const floatY = Math.sin(gameFrame.current * 0.1) * 3;
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
+        ctx.beginPath();
+        ctx.arc(sx, sy + floatY, e.size + 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#0284c7';
+        ctx.beginPath();
+        ctx.arc(sx, sy + floatY, e.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ice Crown
+        ctx.fillStyle = '#bae6fd';
+        ctx.beginPath();
+        ctx.moveTo(sx - 14, sy + floatY - e.size + 4);
+        ctx.lineTo(sx - 10, sy + floatY - e.size - 16);
+        ctx.lineTo(sx - 4, sy + floatY - e.size + 2);
+        ctx.lineTo(sx, sy + floatY - e.size - 22);
+        ctx.lineTo(sx + 4, sy + floatY - e.size + 2);
+        ctx.lineTo(sx + 10, sy + floatY - e.size - 16);
+        ctx.lineTo(sx + 14, sy + floatY - e.size + 4);
+        ctx.fill();
+
+        // Cyan Skull Eyes
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(sx - 6, sy + floatY - 2, 3, 3);
+        ctx.fillRect(sx + 3, sy + floatY - 2, 3, 3);
+
+      } else if (e.type === 'PlagueBehemoth') {
+        // Rotting Plague Behemoth
+        const pulse = Math.sin(gameFrame.current * 0.08) * 3;
+        ctx.fillStyle = '#3f6212';
+        ctx.beginPath();
+        ctx.arc(sx, sy, e.size + pulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Oozing toxic boils
+        ctx.fillStyle = '#a3e635';
+        ctx.beginPath();
+        ctx.arc(sx - 12, sy - 10, 8, 0, Math.PI * 2);
+        ctx.arc(sx + 14, sy - 6, 10, 0, Math.PI * 2);
+        ctx.arc(sx - 6, sy + 14, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Toxic red eyes
+        ctx.fillStyle = '#dc2626';
+        ctx.fillRect(sx - 8, sy - 4, 3, 3);
+        ctx.fillRect(sx + 5, sy - 4, 3, 3);
+
+      } else if (e.type === 'VoidEmperor') {
+        // Arch-Void Emperor Cosmic Orb
+        const floatY = Math.sin(gameFrame.current * 0.09) * 4;
+        ctx.fillStyle = '#3b0764';
+        ctx.beginPath();
+        ctx.arc(sx, sy + floatY, e.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Orbiting void rings
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(sx, sy + floatY, e.size + 14, e.size / 2, gameFrame.current * 0.05, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Glowing violet core eye
+        ctx.fillStyle = '#e879f9';
+        ctx.beginPath();
+        ctx.arc(sx, sy + floatY, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (e.type === 'ChaosHydra') {
+        // 100-Headed Chaos Hydra
+        ctx.fillStyle = '#831843';
+        ctx.beginPath();
+        ctx.arc(sx, sy, e.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 5 dragon heads swaying around body
+        const headColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'];
+        for (let i = 0; i < 5; i++) {
+          const hAngle = (i * Math.PI * 2) / 5 + gameFrame.current * 0.05;
+          const hx = sx + Math.cos(hAngle) * (e.size + 12);
+          const hy = sy + Math.sin(hAngle) * (e.size + 12);
+
+          // Neck
+          ctx.strokeStyle = '#9d174d';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(hx, hy);
+          ctx.stroke();
+
+          // Head
+          ctx.fillStyle = headColors[i];
+          ctx.beginPath();
+          ctx.arc(hx, hy, 9, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+      } else if (e.type === 'FrostDrake') {
+        // Rime-Wing Frost Drake Sub-Boss
+        ctx.fillStyle = '#0284c7';
+        const flap = Math.sin(gameFrame.current * 0.1) * 12;
+        ctx.beginPath();
+        ctx.moveTo(sx - 12, sy);
+        ctx.lineTo(sx - 36, sy - flap);
+        ctx.lineTo(sx, sy + 6);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(sx + 12, sy);
+        ctx.lineTo(sx + 36, sy - flap);
+        ctx.lineTo(sx, sy + 6);
+        ctx.fill();
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(sx, sy, e.size, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (e.type === 'SolarGolem') {
+        // Solar Arch-Golem
+        ctx.fillStyle = '#a16207';
+        ctx.fillRect(sx - e.size, sy - e.size, e.size * 2, e.size * 2);
+
+        // Sun emblem
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.arc(sx, sy, e.size - 6, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (e.type === 'VoidStalker') {
+        // Ethereal Void Stalker
+        ctx.fillStyle = '#581c87';
+        ctx.beginPath();
+        ctx.arc(sx, sy, e.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#c084fc';
+        ctx.fillRect(sx - 4, sy - 2, 2.5, 2.5);
+        ctx.fillRect(sx + 2, sy - 2, 2.5, 2.5);
+
+      } else if (e.type === 'ChaosOrbitor') {
+        // Arcane Chaos Orbitor
+        ctx.fillStyle = '#be123c';
+        ctx.beginPath();
+        ctx.arc(sx, sy, e.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 3 orbiting crystals
+        for (let i = 0; i < 3; i++) {
+          const cAngle = (i * Math.PI * 2) / 3 + gameFrame.current * 0.08;
+          const cxPos = sx + Math.cos(cAngle) * 22;
+          const cyPos = sy + Math.sin(cAngle) * 22;
+          ctx.fillStyle = '#fda4af';
+          ctx.fillRect(cxPos - 3, cyPos - 3, 6, 6);
+        }
+
       } else {
         // General default circle fallback
         ctx.fillStyle = e.color;
@@ -3441,6 +4474,49 @@ export default function DungeonCanvas({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm">🌌</span> <span>Stairs/Portals progress floor</span>
+          </div>
+        </div>
+
+        {/* Potion Quick-Bar & Keys HUD Overlay */}
+        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
+          <div className="flex items-center gap-1.5 bg-zinc-950/85 border border-zinc-800 p-2 rounded-xl backdrop-blur-md shadow-xl font-mono text-xs">
+            <button
+              onClick={triggerInvisibilityPotion}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border transition-all ${player.invisibilityTimer > 0 ? 'bg-sky-950 border-sky-500 text-sky-300 animate-pulse' : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-800'}`}
+              title="Ghost Invisibility (4 mins)! Hotkey 1"
+            >
+              <span>👻</span>
+              <span className="font-bold text-[11px]">{player.invisibilityPotions}</span>
+              <span className="text-[9px] text-zinc-500 ml-1 font-sans">[1]</span>
+            </button>
+
+            <button
+              onClick={triggerMonsterPotion}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border transition-all ${player.monsterTransformTimer > 0 ? 'bg-red-950 border-red-500 text-red-300 animate-pulse' : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-800'}`}
+              title="Transform into Blood Monster! Hotkey 2"
+            >
+              <span>👹</span>
+              <span className="font-bold text-[11px]">{player.monsterPotions}</span>
+              <span className="text-[9px] text-zinc-500 ml-1 font-sans">[2]</span>
+            </button>
+
+            <button
+              onClick={triggerVinesPotion}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-all"
+              title="Entangle enemies in vines for 3s! Hotkey 3"
+            >
+              <span>🌿</span>
+              <span className="font-bold text-[11px]">{player.vinesPotions}</span>
+              <span className="text-[9px] text-zinc-500 ml-1 font-sans">[3]</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 bg-zinc-950/85 border border-zinc-800 px-3 py-1.5 rounded-lg backdrop-blur-md font-mono text-[11px] text-zinc-300">
+            <span className="flex items-center gap-1">🗝️ <b>{player.silverKeys}</b> Silver Keys</span>
+            <span className="text-zinc-700">|</span>
+            <span className={`flex items-center gap-1 font-bold ${player.hasGoldenSecretKey ? 'text-amber-400' : 'text-zinc-500'}`}>
+              🔑 {player.hasGoldenSecretKey ? 'SECRET KEY UNLOCKED' : 'Secret Key Locked'}
+            </span>
           </div>
         </div>
       </div>
