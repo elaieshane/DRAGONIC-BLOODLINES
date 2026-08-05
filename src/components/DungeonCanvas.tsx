@@ -124,6 +124,7 @@ export default function DungeonCanvas({
   const gameFrame = useRef(0);
   const floorStartTimeRef = useRef(Date.now());
   const [floorSec, setFloorSec] = useState(0);
+  const [currentRoomTitle, setCurrentRoomTitle] = useState<string>('');
 
   // Companion system representation
   interface CompanionEntity {
@@ -154,6 +155,7 @@ export default function DungeonCanvas({
   useEffect(() => {
     floorStartTimeRef.current = Date.now();
     setFloorSec(0);
+    setCurrentRoomTitle('');
     // Spawn concrete enemy instances from spawns
     const spawnedEnemies = level.enemySpawns.map((s, idx) => {
       let maxHp = 30;
@@ -245,66 +247,6 @@ export default function DungeonCanvas({
           dmg = 22;
           spd = 1.3;
           name = 'Vlad the Vampire Lord';
-          break;
-        case 'HollowArchbishop':
-          maxHp = 1050;
-          dmg = 34;
-          spd = 0.75;
-          name = 'The Hollow Archbishop';
-          break;
-        case 'WitchQueen':
-          maxHp = 980;
-          dmg = 33;
-          spd = 1.05;
-          name = 'Witch Queen Morvessa';
-          break;
-        case 'BlackKnight':
-          maxHp = 1120;
-          dmg = 36;
-          spd = 0.85;
-          name = 'Sir Garruk, The Black Knight';
-          break;
-        case 'NecromancerKing':
-          maxHp = 1180;
-          dmg = 38;
-          spd = 0.8;
-          name = 'Necromancer King Malakar';
-          break;
-        case 'EmperorCaelus':
-          maxHp = 1450;
-          dmg = 42;
-          spd = 0.95;
-          name = 'Emperor Caelus, The Ancient Dragon';
-          break;
-        case 'CathedralTemplar':
-          maxHp = 420;
-          dmg = 20;
-          spd = 1.05;
-          name = 'Cathedral Templar';
-          break;
-        case 'CrocodileKing':
-          maxHp = 520;
-          dmg = 24;
-          spd = 1.05;
-          name = 'Crocodile King';
-          break;
-        case 'Frankenstein':
-          maxHp = 640;
-          dmg = 28;
-          spd = 0.9;
-          name = 'Frankenstein';
-          break;
-        case 'BoneGiant':
-          maxHp = 700;
-          dmg = 30;
-          spd = 0.7;
-          name = 'Bone Giant';
-          break;
-        case 'DragonKnight':
-          maxHp = 760;
-          dmg = 32;
-          spd = 1.1;
-          name = 'Draconic Knight-Captain';
           break;
         case 'ChimeraBeast':
           maxHp = 420;
@@ -434,8 +376,8 @@ export default function DungeonCanvas({
           break;
       }
 
-      const isMainBoss = s.type === 'WerewolfKing' || s.type === 'VampireNoble' || s.type === 'SmelterGiant' || s.type === 'CthulhuSquid' || s.type === 'FrostLich' || s.type === 'PlagueBehemoth' || s.type === 'VoidEmperor' || s.type === 'GraveDragun' || s.type === 'ChaosHydra' || s.type === 'CountDracula' || s.type === 'HollowArchbishop' || s.type === 'WitchQueen' || s.type === 'BlackKnight' || s.type === 'NecromancerKing' || s.type === 'EmperorCaelus';
-      const isSubBoss = s.type === 'SkeletonKing' || s.type === 'ChimeraBeast' || s.type === 'GargoyleTitan' || s.type === 'ShadowHarpy' || s.type === 'MagmaWyrm' || s.type === 'BrimstoneSerpent' || s.type === 'FrostDrake' || s.type === 'Leviathan' || s.type === 'NecroConstruct' || s.type === 'BloodFiend' || s.type === 'VoidStalker' || s.type === 'SolarGolem' || s.type === 'ChaosOrbitor' || s.type === 'VampireLord' || s.type === 'CathedralTemplar' || s.type === 'CrocodileKing' || s.type === 'Frankenstein' || s.type === 'BoneGiant' || s.type === 'DragonKnight';
+      const isMainBoss = s.type === 'WerewolfKing' || s.type === 'VampireNoble' || s.type === 'SmelterGiant' || s.type === 'CthulhuSquid' || s.type === 'FrostLich' || s.type === 'PlagueBehemoth' || s.type === 'VoidEmperor' || s.type === 'GraveDragun' || s.type === 'ChaosHydra' || s.type === 'CountDracula';
+      const isSubBoss = s.type === 'SkeletonKing' || s.type === 'ChimeraBeast' || s.type === 'GargoyleTitan' || s.type === 'ShadowHarpy' || s.type === 'MagmaWyrm' || s.type === 'BrimstoneSerpent' || s.type === 'FrostDrake' || s.type === 'Leviathan' || s.type === 'NecroConstruct' || s.type === 'BloodFiend' || s.type === 'VoidStalker' || s.type === 'SolarGolem' || s.type === 'ChaosOrbitor' || s.type === 'VampireLord';
       const isBoss = isMainBoss || isSubBoss;
       const isDormant = isBoss;
       const spawnDelaySeconds = isMainBoss ? 45 : isSubBoss ? 25 : 0;
@@ -1145,11 +1087,17 @@ export default function DungeonCanvas({
     const nextInvisTimer = Math.max(0, player.invisibilityTimer - 1);
     const nextMonsterTimer = Math.max(0, player.monsterTransformTimer - 1);
 
-    // Step-on tile interactions for special tiles
+    // Step-on tile interactions for special tiles & room title tracking
     const tileGridX = Math.floor(player.x / 32);
     const tileGridY = Math.floor(player.y / 32);
     if (tileGridX >= 0 && tileGridX < level.width && tileGridY >= 0 && tileGridY < level.height) {
       const curTile = level.grid[tileGridY][tileGridX];
+
+      // Update active room title banner HUD
+      if (curTile.roomTitle && curTile.roomTitle !== currentRoomTitle) {
+        setCurrentRoomTitle(curTile.roomTitle);
+      }
+
       if (curTile.type === 'GreenDotTile') {
         curTile.type = 'Floor'; // switch pressed
         playSound('chest');
@@ -1182,17 +1130,75 @@ export default function DungeonCanvas({
         }
         setPlayer(prev => ({ ...prev, xp: prev.xp + 25, mana: Math.min(prev.maxMana, prev.mana + 30) }));
         setLevel({ ...level });
-      } else if (curTile.type === 'SkeletalRemains' || curTile.type === 'Ruins') {
+      } else if (curTile.type === 'SkeletalRemains' || curTile.type === 'SkullPile') {
         curTile.type = 'Floor';
         playSound('chest');
         const lootedGold = Math.floor(Math.random() * 30) + 15;
         const foundKey = Math.random() < 0.40;
-        spawnSplashParticles(player.x, player.y, '#e2e8f0', 12);
-        spawnDamageNumber(player.x, player.y - 15, `Searched Remains: +${lootedGold} Gold 🪙`, '#fbbf24');
+        spawnSplashParticles(player.x, player.y, '#e2e8f0', 14);
+        spawnDamageNumber(player.x, player.y - 15, `💀 Searched Skeleton Bones: +${lootedGold} Gold 🪙`, '#fbbf24');
         if (foundKey) {
           spawnDamageNumber(player.x, player.y - 30, 'FOUND SILVER KEY! 🗝️', '#38bdf8');
         }
         setPlayer(prev => ({ ...prev, gold: prev.gold + lootedGold, silverKeys: prev.silverKeys + (foundKey ? 1 : 0) }));
+        setLevel({ ...level });
+      } else if (curTile.type === 'Ruins' || curTile.type === 'RuinedRelic') {
+        curTile.type = 'Floor';
+        playSound('chest');
+        const lootedGold = Math.floor(Math.random() * 35) + 20;
+        const foundKey = Math.random() < 0.45;
+        spawnSplashParticles(player.x, player.y, '#d97706', 15);
+        spawnDamageNumber(player.x, player.y - 15, `🏛️ Salvaged Ancient Ruins: +${lootedGold} Gold 🪙`, '#fbbf24');
+        if (foundKey) {
+          spawnDamageNumber(player.x, player.y - 30, 'FOUND SILVER KEY! 🗝️', '#38bdf8');
+        }
+        setPlayer(prev => ({ ...prev, gold: prev.gold + lootedGold, silverKeys: prev.silverKeys + (foundKey ? 1 : 0) }));
+        setLevel({ ...level });
+      } else if (curTile.type === 'ArmorRemains') {
+        curTile.type = 'Floor';
+        playSound('chest');
+        const lootedGold = Math.floor(Math.random() * 40) + 25;
+        const foundItem = generateRandomItem('Armor', level.floorIndex);
+        spawnSplashParticles(player.x, player.y, '#94a3b8', 18);
+        spawnDamageNumber(player.x, player.y - 15, `🛡️ Searched Knight's Armor Remains!`, '#38bdf8');
+        spawnDamageNumber(player.x, player.y - 30, `+${foundItem.name} Looted! 🛡️`, '#eab308');
+        setPlayer(prev => ({
+          ...prev,
+          gold: prev.gold + lootedGold,
+          inventory: [...prev.inventory, foundItem],
+        }));
+        setLevel({ ...level });
+      } else if (curTile.type === 'MonsterStatue') {
+        curTile.type = 'Floor';
+        playSound('chest');
+        spawnSplashParticles(player.x, player.y, '#a855f7', 15);
+        spawnDamageNumber(player.x, player.y - 15, '🗿 Gargoyle Statue Examined!', '#a855f7');
+        spawnDamageNumber(player.x, player.y - 30, '+1 Monster Potion & +30 Gold 🧪', '#38bdf8');
+        setPlayer(prev => ({ ...prev, monsterPotions: prev.monsterPotions + 1, gold: prev.gold + 30 }));
+        setLevel({ ...level });
+      } else if (curTile.type === 'HeroStatue') {
+        curTile.type = 'Floor';
+        playSound('levelup');
+        spawnSplashParticles(player.x, player.y, '#eab308', 20);
+        spawnDamageNumber(player.x, player.y - 15, '🗿 Fallen Hero Shrine Honored!', '#eab308');
+        spawnDamageNumber(player.x, player.y - 30, '+1 Stat Point & +40 XP! ⚔️', '#38bdf8');
+        setPlayer(prev => ({ ...prev, statPoints: prev.statPoints + 1, xp: prev.xp + 40 }));
+        setLevel({ ...level });
+      } else if (curTile.type === 'GoddessStatue') {
+        curTile.type = 'Floor';
+        playSound('spell');
+        spawnSplashParticles(player.x, player.y, '#38bdf8', 22);
+        spawnDamageNumber(player.x, player.y - 15, '🕊️ Goddess Shrine Blessing!', '#38bdf8');
+        spawnDamageNumber(player.x, player.y - 30, 'Fully Restored Health & Mana! ✨', '#4ade80');
+        setPlayer(prev => ({ ...prev, health: prev.maxHealth, mana: prev.maxMana }));
+        setLevel({ ...level });
+      } else if (curTile.type === 'DragunStatue') {
+        curTile.type = 'Floor';
+        playSound('spell');
+        spawnSplashParticles(player.x, player.y, '#f97316', 22);
+        spawnDamageNumber(player.x, player.y - 15, '🔥 Dragun Idol Touched!', '#f97316');
+        spawnDamageNumber(player.x, player.y - 30, '+50 Gold & Fire Surge! 🔥', '#fbbf24');
+        setPlayer(prev => ({ ...prev, gold: prev.gold + 50, mana: prev.maxMana }));
         setLevel({ ...level });
       } else if (curTile.type === 'Crest') {
         curTile.type = 'Floor';
@@ -1201,14 +1207,6 @@ export default function DungeonCanvas({
         spawnDamageNumber(player.x, player.y - 15, '👑 ANCIENT VAMPIRE CREST CLAIMED!', '#ef4444');
         spawnDamageNumber(player.x, player.y - 30, '+60 Gold & +1 Stat Point!', '#eab308');
         setPlayer(prev => ({ ...prev, gold: prev.gold + 60, statPoints: prev.statPoints + 1 }));
-        setLevel({ ...level });
-      } else if (curTile.type === 'MonsterStatue') {
-        curTile.type = 'Floor';
-        playSound('chest');
-        spawnSplashParticles(player.x, player.y, '#a855f7', 15);
-        spawnDamageNumber(player.x, player.y - 15, '🗿 Monster Statue Searched!', '#a855f7');
-        spawnDamageNumber(player.x, player.y - 30, '+1 Monster Potion 🧪', '#38bdf8');
-        setPlayer(prev => ({ ...prev, monsterPotions: prev.monsterPotions + 1, gold: prev.gold + 25 }));
         setLevel({ ...level });
       }
     }
@@ -3379,15 +3377,85 @@ export default function DungeonCanvas({
 
         // Draw MonsterStatue
         if (tile.type === 'MonsterStatue') {
-          ctx.fillStyle = '#3f3f46'; // Pedestal
+          ctx.fillStyle = '#27272a'; // Dark granite pedestal
           ctx.fillRect(screenX + 6, screenY + 20, 20, 10);
-          ctx.fillStyle = '#71717a'; // Statue wings & head
+          ctx.fillStyle = '#52525b'; // Gargoyle body & wings
           ctx.beginPath();
           ctx.arc(screenX + 16, screenY + 12, 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(screenX + 10, screenY + 12);
+          ctx.lineTo(screenX + 2, screenY + 4);
+          ctx.lineTo(screenX + 10, screenY + 18);
+          ctx.moveTo(screenX + 22, screenY + 12);
+          ctx.lineTo(screenX + 30, screenY + 4);
+          ctx.lineTo(screenX + 22, screenY + 18);
           ctx.fill();
           ctx.fillStyle = '#ef4444';
           ctx.fillRect(screenX + 13, screenY + 10, 2, 2);
           ctx.fillRect(screenX + 17, screenY + 10, 2, 2);
+        }
+
+        // Draw HeroStatue
+        if (tile.type === 'HeroStatue') {
+          ctx.fillStyle = '#52525b'; // Stone pedestal
+          ctx.fillRect(screenX + 6, screenY + 22, 20, 8);
+          ctx.fillStyle = '#a1a1aa'; // Knight body
+          ctx.fillRect(screenX + 11, screenY + 10, 10, 12);
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 8, 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#e2e8f0';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(screenX + 16, screenY + 4);
+          ctx.lineTo(screenX + 16, screenY + 24);
+          ctx.stroke();
+          ctx.fillStyle = '#eab308';
+          ctx.fillRect(screenX + 14, screenY + 12, 4, 4);
+        }
+
+        // Draw GoddessStatue
+        if (tile.type === 'GoddessStatue') {
+          ctx.fillStyle = '#475569'; // Marble pedestal
+          ctx.fillRect(screenX + 6, screenY + 22, 20, 8);
+          ctx.fillStyle = '#f8fafc'; // White marble gown
+          ctx.beginPath();
+          ctx.moveTo(screenX + 16, screenY + 8);
+          ctx.lineTo(screenX + 8, screenY + 22);
+          ctx.lineTo(screenX + 24, screenY + 22);
+          ctx.closePath();
+          ctx.fill();
+          const haloPulse = Math.sin(gameFrame.current * 0.1) * 2 + 6;
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 4, haloPulse, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Draw DragunStatue
+        if (tile.type === 'DragunStatue') {
+          ctx.fillStyle = '#18181b'; // Obsidian pedestal
+          ctx.fillRect(screenX + 6, screenY + 22, 20, 8);
+          ctx.fillStyle = '#7f1d1d'; // Crimson dragun body
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 14, 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#f97316';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(screenX + 12, screenY + 10);
+          ctx.lineTo(screenX + 6, screenY + 2);
+          ctx.moveTo(screenX + 20, screenY + 10);
+          ctx.lineTo(screenX + 26, screenY + 2);
+          ctx.stroke();
+          if (gameFrame.current % 4 === 0) {
+            const emberX = screenX + 10 + Math.random() * 12;
+            const emberY = screenY + 10 - Math.random() * 8;
+            ctx.fillStyle = '#fdba74';
+            ctx.fillRect(emberX, emberY, 2, 2);
+          }
         }
 
         // Draw Ruins
@@ -3397,23 +3465,67 @@ export default function DungeonCanvas({
           ctx.fillRect(screenX + 18, screenY + 18, 10, 10);
           ctx.fillStyle = '#16a34a'; // Moss accent
           ctx.fillRect(screenX + 6, screenY + 14, 4, 4);
+          ctx.fillStyle = '#71717a';
+          ctx.fillRect(screenX + 12, screenY + 22, 6, 6);
+        }
+
+        // Draw RuinedRelic
+        if (tile.type === 'RuinedRelic') {
+          ctx.fillStyle = '#d97706'; // Golden ancient urn/relic
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 18, 7, 0, Math.PI * 2);
+          ctx.fill();
+          const runeGlow = Math.sin(gameFrame.current * 0.1) * 0.3 + 0.7;
+          ctx.fillStyle = `rgba(56, 189, 248, ${runeGlow})`;
+          ctx.fillRect(screenX + 12, screenY + 12, 3, 3);
+          ctx.fillRect(screenX + 18, screenY + 10, 3, 3);
         }
 
         // Draw SkeletalRemains
         if (tile.type === 'SkeletalRemains') {
           ctx.fillStyle = '#e4e4e7'; // Skull
           ctx.beginPath();
-          ctx.arc(screenX + 16, screenY + 16, 5, 0, Math.PI * 2);
+          ctx.arc(screenX + 16, screenY + 14, 5, 0, Math.PI * 2);
           ctx.fill();
           ctx.fillStyle = '#18181b'; // Eye sockets
-          ctx.fillRect(screenX + 14, screenY + 15, 1.5, 1.5);
-          ctx.fillRect(screenX + 16.5, screenY + 15, 1.5, 1.5);
+          ctx.fillRect(screenX + 14, screenY + 13, 1.5, 1.5);
+          ctx.fillRect(screenX + 16.5, screenY + 13, 1.5, 1.5);
           ctx.strokeStyle = '#e4e4e7';
           ctx.lineWidth = 1.5;
           ctx.beginPath();
           ctx.moveTo(screenX + 10, screenY + 22);
           ctx.lineTo(screenX + 22, screenY + 22);
+          ctx.moveTo(screenX + 12, screenY + 18);
+          ctx.lineTo(screenX + 20, screenY + 26);
           ctx.stroke();
+        }
+
+        // Draw SkullPile
+        if (tile.type === 'SkullPile') {
+          ctx.fillStyle = '#d4d4d8'; // Skulls mound
+          ctx.beginPath();
+          ctx.arc(screenX + 12, screenY + 18, 4, 0, Math.PI * 2);
+          ctx.arc(screenX + 20, screenY + 18, 4, 0, Math.PI * 2);
+          ctx.arc(screenX + 16, screenY + 12, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#c084fc';
+          ctx.fillRect(screenX + 14.5, screenY + 11, 1, 1);
+          ctx.fillRect(screenX + 16.5, screenY + 11, 1, 1);
+        }
+
+        // Draw ArmorRemains
+        if (tile.type === 'ArmorRemains') {
+          ctx.fillStyle = '#64748b'; // Steel cuirass
+          ctx.fillRect(screenX + 8, screenY + 12, 16, 12);
+          ctx.fillStyle = '#94a3b8'; // Helm
+          ctx.beginPath();
+          ctx.arc(screenX + 16, screenY + 10, 6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#dc2626'; // Visor plume
+          ctx.fillRect(screenX + 15, screenY + 3, 3, 4);
+          ctx.fillStyle = '#cbd5e1'; // Pauldrons
+          ctx.fillRect(screenX + 5, screenY + 12, 3, 6);
+          ctx.fillRect(screenX + 24, screenY + 12, 3, 6);
         }
 
         // Draw Crest
@@ -4657,6 +4769,14 @@ export default function DungeonCanvas({
             </div>
           );
         })()}
+
+        {/* Floating Room Title Banner HUD */}
+        {currentRoomTitle && (
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-zinc-950/95 border border-amber-900/80 px-4 py-1.5 rounded-xl backdrop-blur-md shadow-2xl font-mono text-xs text-amber-200 font-bold tracking-wide animate-fade-in border-t-2 border-t-amber-500 pointer-events-none">
+            <span className="text-amber-400">🏛️</span>
+            <span>{currentRoomTitle}</span>
+          </div>
+        )}
 
         {/* Potion Quick-Bar & Keys HUD Overlay */}
         <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">

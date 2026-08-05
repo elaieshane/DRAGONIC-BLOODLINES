@@ -255,12 +255,13 @@ export interface DamageNumber {
 export type TileType = 
   | 'Wall' | 'Floor' | 'Door' | 'Lava' | 'BloodPool' | 'Stairs' 
   | 'NPC' | 'Chest' | 'Herb' | 'Potion' | 'PoisonSwamp' | 'Ice' | 'Abyss'
-  | 'PortalBack' | 'EscapePortal' | 'SecretDoor' | 'GreenDotTile' | 'Scroll' | 'MonsterStatue' | 'Ruins' | 'SkeletalRemains' | 'Crest';
+  | 'PortalBack' | 'EscapePortal' | 'SecretDoor' | 'SecretWall' | 'GreenDotTile' | 'Scroll' | 'MonsterStatue' | 'HeroStatue' | 'GoddessStatue' | 'DragunStatue' | 'Throne' | 'Armory' | 'Kitchen' | 'WarRoom' | 'TrainingRoom' | 'ArmorRemains' | 'RuinedRelic' | 'Ruins' | 'SkeletalRemains' | 'Crest';
 
 export interface Tile {
   type: TileType;
   explored: boolean;
-  decoration?: string; 
+  decoration?: string;
+  roomTitle?: string;
 }
 
 export type FloorTheme = 
@@ -268,7 +269,8 @@ export type FloorTheme =
   | 'HauntedVillage' | 'NecromancerTower' | 'ForgottenLibrary' 
   | 'FrankensteinLab' | 'RoyalVampirePalace' | 'DragonNest' 
   | 'FrozenMountain' | 'CrocodileSewers' | 'AbandonedMines' 
-  | 'BlackKnightFortress' | 'BloodForest' | 'EternalThrone' | 'VolcanicWastes';
+  | 'BlackKnightFortress' | 'BloodForest' | 'EternalThrone' | 'VolcanicWastes'
+  | 'AbyssalDepths' | 'FrostSpire' | 'NecroCatacombs' | 'VoidBastion' | 'SolarForge' | 'ChaosChamber' | 'InnerSanctum';
 
 export interface LevelData {
   grid: Tile[][];
