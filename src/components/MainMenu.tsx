@@ -25,10 +25,11 @@ interface MainMenuProps {
   onOpenSettings: () => void;
   onContinueGame?: () => void;
   onEnterNight: () => void;
+  onOpenGraveyard: () => void;
   hasSave?: boolean;
 }
 
-export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, onEnterNight, hasSave }: MainMenuProps) {
+export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, onEnterNight, onOpenGraveyard, hasSave }: MainMenuProps) {
   const [activeTab, setActiveTab] = useState<'champions' | 'inventory' | 'abilities' | 'crypts' | 'bestiary' | 'quests' | 'map' | 'settings'>('champions');
   const [selectedClass, setSelectedClass] = useState<PlayerClass>('VampireHunter');
   const [selectedKingdom, setSelectedKingdom] = useState<number>(1);
@@ -1866,8 +1867,16 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
                 ))}
               </div>
 
-              <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-900 text-[10px] font-mono text-zinc-500 leading-normal">
-                ⚔️ <b>DESCENT RULE:</b> Locate and stand on the glowing stairs/portal on each floor to descend deeper. Portal gates are strictly locked until you defeat the boss of that level! Slay Grave-Born Dragun on Floor 5 to claim ultimate victory.
+              <div className="space-y-3">
+                <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-900 text-[10px] font-mono text-zinc-500 leading-normal">
+                  ⚔️ <b>DESCENT RULE:</b> Locate and stand on the glowing stairs/portal on each floor to descend deeper. Portal gates are strictly locked until you defeat the boss of that level! Slay Grave-Born Dragun on Floor 5 to claim ultimate victory.
+                </div>
+                <button
+                  onClick={() => { playSound('levelup'); onOpenGraveyard(); }}
+                  className="w-full py-3 bg-gradient-to-r from-red-800 via-red-600 to-red-800 text-white font-mono text-[10px] font-bold uppercase tracking-[0.2em] rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(220,38,38,0.25)] hover:shadow-[0_0_22px_rgba(239,68,68,0.35)] hover:-translate-y-0.5"
+                >
+                  🪨 AWAKEN THE GRAVEYARD STATUES
+                </button>
               </div>
             </div>
           )}

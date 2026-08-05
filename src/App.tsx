@@ -9,6 +9,7 @@ import CharacterSheet from './components/CharacterSheet';
 import SettingsModal from './components/SettingsModal';
 import TutorialScreen from './components/TutorialScreen';
 import CraftPixShowcase from './components/CraftPixShowcase';
+import DungeonGraveyard from './components/DungeonGraveyard';
 import { Heart, Zap, Coins, Shield, Trophy, RefreshCw, Volume2, Sparkles, AlertTriangle, Settings, Book, Palette } from 'lucide-react';
 import { BestiarySystem } from './systems/BestiarySystem';
 import { CodexOverlay } from './components/CodexOverlay';
@@ -25,7 +26,7 @@ const CRAFTPIX_READY = (() => {
 })();
 
 export default function App() {
-  const [screen, setScreen] = useState<'intro_splash' | 'video_intro1' | 'video_intro2' | 'menu' | 'intro' | 'playing' | 'gameover' | 'victory' | 'loading'>('intro_splash');
+  const [screen, setScreen] = useState<'intro_splash' | 'video_intro1' | 'video_intro2' | 'menu' | 'intro' | 'playing' | 'graveyard' | 'gameover' | 'victory' | 'loading'>('intro_splash');
   const [playerClass, setPlayerClass] = useState<PlayerClass>('VampireHunter');
 
   useEffect(() => {
@@ -980,8 +981,13 @@ export default function App() {
           onOpenSettings={() => setIsSettingsOpen(true)}
           onContinueGame={handleContinueGame}
           onEnterNight={() => setScreen('menu')}
+          onOpenGraveyard={() => setScreen('graveyard')}
           hasSave={hasSaveFile}
         />
+      )}
+
+      {screen === 'graveyard' && (
+        <DungeonGraveyard onExit={() => setScreen('menu')} />
       )}
 
       {/* 2. Lore Intro Card (Interactive RPG Tutorial Screen) */}
@@ -1052,6 +1058,41 @@ export default function App() {
               </div>
               <div className="h-1.5 w-full bg-zinc-900 rounded-full border border-zinc-800 overflow-hidden shadow-inner">
                 <div className="h-full bg-gradient-to-r from-red-800 to-red-500 shadow-[0_0_8px_#ef4444] animate-load-progress" />
+              </div>
+            </div>
+
+            {/* Uiverse loader visualizations */}
+            <div className="mt-8 flex flex-col items-center gap-6 w-full">
+              <div className="loader">
+                <div className="container">
+                  <div className="carousel">
+                    {Array.from({ length: 7 }).map((_, idx) => (
+                      <div key={`love-${idx}`} className="love" />
+                    ))}
+                  </div>
+                </div>
+                <div className="container">
+                  <div className="carousel">
+                    {Array.from({ length: 7 }).map((_, idx) => (
+                      <div key={`death-${idx}`} className="death" />
+                    ))}
+                  </div>
+                </div>
+                <div className="container">
+                  <div className="carousel">
+                    {Array.from({ length: 7 }).map((_, idx) => (
+                      <div key={`robots-${idx}`} className="robots" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="preloader w-full max-w-[220px]">
+                <div className="crack crack1" />
+                <div className="crack crack2" />
+                <div className="crack crack3" />
+                <div className="crack crack4" />
+                <div className="crack crack5" />
               </div>
             </div>
           </div>
