@@ -1905,18 +1905,24 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
               {/* Horizontal Theme cards */}
               <div className="flex-1 flex flex-col gap-3 overflow-y-auto max-h-[300px] pr-1.5">
                 {[
-                  { floor: 'Floor 1', name: 'Ancient Vampire Crypts', boss: 'Baron von Bone', desc: 'Cold stony graves containing coffins, bats, and skeletal guardians. Defeat the bone king to unlock the gate.', bg: 'from-zinc-950 to-zinc-900 border-zinc-900' },
-                  { floor: 'Floor 2', name: 'Cathedral of Ash', boss: 'Vlad the Vampire Lord', desc: 'Huge gothic hall with towering stained glass and tall chandeliers. Drops legendary items.', bg: 'from-red-950/20 to-zinc-950 border-red-950/50' },
-                  { floor: 'Floor 3', name: "Dragun's Maw Caverns", boss: 'Ash-Wing Chimera', desc: 'Magma rivers and narrow walkways. Contact with the boiling lava pool burns! Slay the beast of fire.', bg: 'from-orange-950/20 to-zinc-950 border-orange-950/50' },
-                  { floor: 'Floor 4', name: 'The Smelter Forge', boss: 'Ignis Smelter Giant', desc: 'A giant forge floor flowing with liquid metal. Defeat the colossal giant before descending to the dragon.', bg: 'from-amber-950/20 to-zinc-950 border-amber-950/50' },
-                  { floor: 'Floor 5', name: 'The Inner Sanctum', boss: 'Grave-Born Dragun', desc: 'The deepest layer containing the massive primordial sleeping skeleton dragon. Slay it to claim final victory.', bg: 'from-purple-950/20 to-zinc-950 border-purple-950/50' },
+                  { floor: 'Floor 1', name: 'Ancient Vampire Crypts', boss: 'Baron von Bone', desc: 'Cold stony graves containing coffins, bats, and skeletal guardians. Defeat the bone king to unlock the gate.', bg: 'from-zinc-950 to-zinc-900 border-zinc-900', image: dungeon1Img },
+                  { floor: 'Floor 2', name: 'Cathedral of Ash', boss: 'Vlad the Vampire Lord', desc: 'Huge gothic hall with towering stained glass and tall chandeliers. Drops legendary items.', bg: 'from-red-950/20 to-zinc-950 border-red-950/50', image: dungeon2Img },
+                  { floor: 'Floor 3', name: "Dragun's Maw Caverns", boss: 'Ash-Wing Chimera', desc: 'Magma rivers and narrow walkways. Contact with the boiling lava pool burns! Slay the beast of fire.', bg: 'from-orange-950/20 to-zinc-950 border-orange-950/50', image: dungeon3Img },
+                  { floor: 'Floor 4', name: 'The Smelter Forge', boss: 'Ignis Smelter Giant', desc: 'A giant forge floor flowing with liquid metal. Defeat the colossal giant before descending to the dragon.', bg: 'from-amber-950/20 to-zinc-950 border-amber-950/50', image: dungeon4Img },
+                  { floor: 'Floor 5', name: 'The Inner Sanctum', boss: 'Grave-Born Dragun', desc: 'The deepest layer containing the massive primordial sleeping skeleton dragon. Slay it to claim final victory.', bg: 'from-purple-950/20 to-zinc-950 border-purple-950/50', image: dungeon1Img },
                 ].map(th => (
                   <div key={th.floor} className={`p-4 rounded-xl border bg-gradient-to-r ${th.bg} flex justify-between items-center gap-4`}>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="px-2 py-0.5 bg-zinc-900 text-[8px] font-mono text-zinc-400 border border-zinc-800 rounded">{th.floor}</span>
-                        <span className="text-xs font-bold text-zinc-100 font-serif uppercase tracking-wider">{th.name}</span>
-                      </div>
+                    <div className="flex items-center gap-4">
+                      {th.image && (
+                        <div className="shrink-0 w-24 h-16 rounded overflow-hidden border border-zinc-800">
+                          <img src={th.image} alt={th.name} className="w-full h-full object-cover opacity-80" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="px-2 py-0.5 bg-zinc-900 text-[8px] font-mono text-zinc-400 border border-zinc-800 rounded">{th.floor}</span>
+                          <span className="text-xs font-bold text-zinc-100 font-serif uppercase tracking-wider">{th.name}</span>
+                        </div>
                       <p className="text-[10px] text-zinc-400 font-serif leading-normal">{th.desc}</p>
                     </div>
                     <div className="text-right shrink-0">
