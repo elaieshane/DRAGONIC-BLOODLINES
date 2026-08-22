@@ -30,11 +30,55 @@ interface MainMenuProps {
 }
 
 export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, onEnterNight, onOpenGraveyard, hasSave }: MainMenuProps) {
-  const [activeTab, setActiveTab] = useState<'champions' | 'inventory' | 'abilities' | 'crypts' | 'bestiary' | 'quests' | 'map' | 'settings'>('champions');
+  type QuestStatus = 'active' | 'completed' | 'locked';
+  interface QuestEntry {
+    id: string;
+    title: string;
+    description: string;
+    rewardGold: number;
+    rewardXP: number;
+    status: QuestStatus;
+    image?: string;
+  }
+
+  const [activeTab, setActiveTab] = useState<'champions' | 'inventory' | 'abilities' | 'crypts' | 'bestiary' | 'quests' | 'store' | 'map' | 'settings'>('champions');
   const [selectedClass, setSelectedClass] = useState<PlayerClass>('VampireHunter');
   const [selectedKingdom, setSelectedKingdom] = useState<number>(1);
   const [volume, setVolume] = useState<number>(0.3);
   const [muted, setMuted] = useState<boolean>(false);
+  const [unlockedClasses, setUnlockedClasses] = useState<PlayerClass[]>(['VampireHunter', 'RenegadeVampire', 'DraconicKnight']);
+  const [storeCredit, setStoreCredit] = useState<number>(450);
+  const [quests, setQuests] = useState<QuestEntry[]>([
+    {
+      id: 'vampire_lord',
+      title: 'Hunt the Vampire Lord Vlad',
+      description: 'Enter Floor 2 and defeat Vlad before he can summon his bat shadows. Purchase the Holy Cross item in the store for extra advantage.',
+      rewardGold: 1200,
+      rewardXP: 800,
+      status: 'active',
+      image: '/quests/quest1.jpg'
+    },
+    {
+      id: 'lava_hatchlings',
+      title: 'Purge the Lava Hatchlings',
+      description: 'Clear 15 volcanic spawn nests on Floor 3. This trial teaches you how to manage heat zones and crowd control.',
+      rewardGold: 850,
+      rewardXP: 500,
+      status: 'active',
+      image: '/quests/quest2.jpg'
+    },
+    {
+      id: 'shadow_tomb',
+      title: 'Unlock the Shadow Tomb',
+      description: 'Locate the hidden Shadow Tomb on Floor 1. Only those who invest in the Gothic Store can reveal its entrance.',
+      rewardGold: 600,
+      rewardXP: 350,
+      status: 'locked',
+      image: '/quests/quest3.jpg'
+    }
+  ]);
+  const [completedQuests, setCompletedQuests] = useState<Set<string>>(new Set());
+  const [isQuestDetailOpen, setIsQuestDetailOpen] = useState<string>('vampire_lord');
   // Customization States
   const [gender, setGender] = useState<'Male' | 'Female' | 'Ethereal'>('Male');
   const [hairStyle, setHairStyle] = useState<string>('Slayer Hood');
@@ -1076,15 +1120,16 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
 
             {/* Menu Tabs */}
             <div className="flex flex-row lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 scrollbar-none">
-              {(['champions', 'inventory', 'abilities', 'crypts', 'bestiary', 'quests', 'map', 'settings'] as const).map(tab => {
-                const isActive = activeTab === tab;
-                let label = tab.toUpperCase();
-                let icon = <Shield className="w-4 h-4" />;
-                if (tab === 'inventory') { icon = <Backpack className="w-4 h-4" />; }
-                if (tab === 'abilities') { icon = <Flame className="w-4 h-4" />; }
-                if (tab === 'crypts') { icon = <Skull className="w-4 h-4" />; label = 'DUNGEONS'; }
-                if (tab === 'bestiary') { icon = <BookOpen className="w-4 h-4" />; }
-                if (tab === 'quests') { icon = <Scroll className="w-4 h-4" />; }
+{(['champions', 'inventory', 'abilities', 'crypts', 'bestiary', 'quests', 'store', 'map', 'settings'] as const).map(tab => {
+                  const isActive = activeTab === tab;
+                  let label = tab.toUpperCase();
+                  let icon = <Shield className="w-4 h-4" />;
+                  if (tab === 'inventory') { icon = <Backpack className="w-4 h-4" />; }
+                  if (tab === 'abilities') { icon = <Flame className="w-4 h-4" />; }
+                  if (tab === 'crypts') { icon = <Skull className="w-4 h-4" />; label = 'DUNGEONS'; }
+                  if (tab === 'bestiary') { icon = <BookOpen className="w-4 h-4" />; }
+                  if (tab === 'quests') { icon = <Scroll className="w-4 h-4" />; }
+                  if (tab === 'store') { icon = <Gift className="w-4 h-4" />; label = 'STORE'; }
                 if (tab === 'map') { icon = <MapIcon className="w-4 h-4" />; label = 'WORLD MAP'; }
                 if (tab === 'settings') { icon = <Settings className="w-4 h-4" />; }
 
@@ -1239,13 +1284,15 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
 
               {/* 1. Champion Class Selector (Horizontal side-by-side cards) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {(Object.keys(classesConfig) as PlayerClass[]).map(cls => {
-                  const cfg = classesConfig[cls];
-                  const isSelected = selectedClass === cls;
-                  return (
-                    <button
-                      key={cls}
-                      onClick={() => handleClassSelect(cls)}
+                {(Object.keys(classesConfig) as PlayerClass[])
+                  .filter(cls => unlockedClasses.includes(cls))
+                  .map(cls => {
+                    const cfg = classesConfig[cls];
+                    const isSelected = selectedClass === cls;
+                    return (
+                      <button
+                        key={cls}
+                        onClick={() => handleClassSelect(cls)}
                       className={`text-left p-3 rounded-xl border transition-all duration-300 flex flex-col justify-between cursor-pointer relative ${
                         isSelected 
                           ? 'border-red-800 bg-red-950/20 shadow-[0_0_15px_rgba(239,68,68,0.15)] ring-1 ring-red-700/30' 
@@ -1270,6 +1317,11 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
                     </button>
                   );
                 })}
+                {unlockedClasses.length <= 3 && (
+                  <div className="col-span-full rounded-xl border border-zinc-900 bg-zinc-900/30 p-4 text-sm text-zinc-400">
+                    🕯️ Only the three default champions are available until you unlock more in the Gothic Store.
+                  </div>
+                )}
               </div>
 
               {/* 2. Character Customization Forge (Split split: options vs humanoid rendering) */}
@@ -2023,7 +2075,144 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
             </div>
           )}
 
-          {/* TAB 7: WORLD MAP */}
+          {/* TAB 7: STORE */}
+          {activeTab === 'store' && (
+            <div className="flex-1 flex flex-col justify-between gap-5 animate-fade-in">
+              <div className="flex flex-col gap-1">
+                <span className="text-zinc-500 font-bold text-[10px] uppercase tracking-widest font-mono">
+                  Gothic Armory & Champion Market
+                </span>
+                <h2 className="text-xl font-bold tracking-wider font-serif text-zinc-100 uppercase">
+                  Coven Vault Store 🛍️
+                </h2>
+              </div>
+
+              <div className="rounded-2xl border border-red-950/30 bg-zinc-950/80 p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <span className="text-[9px] uppercase tracking-[0.25em] text-zinc-500 font-mono">STORE CREDIT</span>
+                    <div className="mt-2 text-3xl font-bold text-amber-300">
+                      {storeCredit} <Coins className="inline-block w-5 h-5" />
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-zinc-900 bg-zinc-900/70 p-3 text-[10px] text-zinc-300">
+                    Spend credits to unlock additional champions and gothic relics.
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 overflow-y-auto pr-1">
+                {(Object.keys(classesConfig) as PlayerClass[])
+                  .filter(cls => !unlockedClasses.includes(cls))
+                  .map(cls => {
+                    const cfg = classesConfig[cls];
+                    const cost = 250 + Math.floor(Math.random() * 150);
+                    return (
+                      <div key={cls} className="rounded-3xl border border-zinc-900/70 bg-zinc-900/80 p-5 flex flex-col justify-between gap-4">
+                        <div>
+                          <div className="flex items-center justify-between gap-3 mb-3">
+                            <div>
+                              <h3 className="text-sm font-semibold text-zinc-100">{cfg.name}</h3>
+                              <p className="text-[8px] uppercase tracking-[0.35em] text-zinc-500 font-mono">Unlockable Champion</p>
+                            </div>
+                            <span className="text-2xl">{cfg.sigil}</span>
+                          </div>
+                          <p className="text-[10px] text-zinc-400 leading-relaxed">{cfg.desc}</p>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-semibold text-amber-300">{cost} <Coins className="inline-block w-4 h-4" /></div>
+                          <button
+                            onClick={() => {
+                              if (storeCredit >= cost) {
+                                setStoreCredit(prev => prev - cost);
+                                setUnlockedClasses(prev => [...prev, cls]);
+                                playSound('levelup');
+                              }
+                            }}
+                            className={`rounded-2xl px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] transition ${storeCredit >= cost ? 'bg-red-700 text-white hover:bg-red-600' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}
+                            disabled={storeCredit < cost}
+                          >
+                            {storeCredit >= cost ? 'UNLOCK' : 'INSUFFICIENT'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-900 text-[10px] text-zinc-500 font-mono leading-normal">
+                🔮 Want more credits? Complete quests in the Vampiric Journal to earn store currency and reveal hidden market bundles.
+              </div>
+            </div>
+          )}
+
+          {/* TAB 8: QUESTS */}
+          {activeTab === 'quests' && (
+            <div className="flex-1 flex flex-col justify-between gap-5 animate-fade-in">
+              <div className="flex flex-col gap-1">
+                <span className="text-zinc-500 font-bold text-[10px] uppercase tracking-widest font-mono">
+                  Hunter Guild Chronicle
+                </span>
+                <h2 className="text-xl font-bold tracking-wider font-serif text-zinc-100 uppercase">
+                  Vampiric Journal & Quests 📜
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
+                {quests.map(quest => {
+                  const isCompleted = completedQuests.has(quest.id);
+                  return (
+                    <div key={quest.id} className="rounded-3xl border border-zinc-900/80 bg-zinc-950/80 p-4 flex flex-col justify-between gap-4">
+                      {quest.image && (
+                        <div className="w-full h-32 mb-2 overflow-hidden rounded-xl border border-zinc-800 shrink-0">
+                          <img src={quest.image} alt={quest.title} className="w-full h-full object-cover opacity-80 hover:scale-105 transition-transform" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="flex items-center justify-between gap-3 mb-3">
+                          <div>
+                            <h3 className="text-sm font-semibold text-zinc-100">{quest.title}</h3>
+                            <span className="text-[8px] uppercase tracking-[0.35em] text-zinc-500 font-mono">{quest.status === 'locked' ? 'LOCKED' : isCompleted ? 'COMPLETED' : 'ACTIVE'}</span>
+                          </div>
+                          <span className={`text-[10px] font-semibold uppercase ${isCompleted ? 'text-emerald-300' : quest.status === 'locked' ? 'text-zinc-500' : 'text-amber-300'}`}>
+                            {isCompleted ? 'Reward claimed' : quest.status === 'locked' ? 'Unlock store' : 'Quest'}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-zinc-400 leading-relaxed">{quest.description}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-[10px] font-mono">
+                        <div className="rounded-2xl border border-zinc-900/80 bg-zinc-900/60 p-3">
+                          <span className="block text-zinc-500">Gold Reward</span>
+                          <span className="font-bold text-amber-300">{quest.rewardGold}</span>
+                        </div>
+                        <div className="rounded-2xl border border-zinc-900/80 bg-zinc-900/60 p-3">
+                          <span className="block text-zinc-500">XP Reward</span>
+                          <span className="font-bold text-sky-300">{quest.rewardXP}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (quest.status !== 'active' || isCompleted) return;
+                          setCompletedQuests(prev => new Set(prev).add(quest.id));
+                          setStoreCredit(prev => prev + Math.floor(quest.rewardGold * 0.5));
+                        }}
+                        className={`w-full rounded-2xl py-3 text-[10px] font-bold uppercase tracking-[0.2em] transition ${quest.status === 'locked' || isCompleted ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-red-700 text-white hover:bg-red-600'}`}
+                        disabled={quest.status !== 'active' || isCompleted}
+                      >
+                        {isCompleted ? 'COMPLETED' : 'CLAIM REWARD'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-900 text-[10px] text-zinc-500 font-serif leading-normal">
+                🛡️ Complete quests to earn Gothic Store credits. Some story quests become available only after unlocking special champions inside the store.
+              </div>
+            </div>
+          )}
+
+          {/* TAB 8: WORLD MAP */}
           {activeTab === 'map' && (
             <div className="flex-1 flex flex-col justify-between gap-4 animate-fade-in">
               <div className="flex flex-col gap-1">
@@ -2051,11 +2240,11 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
 
                 {/* Interactive Map Nodes */}
                 {[
-                  { id: 'crypts', name: 'Blood Crypts (F1)', x: '15%', y: '75%', desc: 'Cold tomb of minor skeletons. Level 1+' },
-                  { id: 'forest', name: 'Crimson Forest (F2)', x: '35%', y: '40%', desc: 'Cursed red woods. Level 5+' },
-                  { id: 'cathedral', name: 'Cathedral (F2 Boss)', x: '55%', y: '60%', desc: 'Throne of Vampire Lord Vlad. Level 10+' },
-                  { id: 'forge', name: 'Dragon Forge (F3)', x: '72%', y: '25%', desc: 'Volcanic magma ovens. Level 15+' },
-                  { id: 'sanctum', name: 'Inner Sanctum (F4 Boss)', x: '88%', y: '75%', desc: 'Sleeping tomb of Grave Dragun. Level 20+' }
+                  { id: 'crypts', name: 'Blood Crypts (F1)', x: '15%', y: '75%', desc: 'Cold tomb of minor skeletons. Level 1+', image: '/dungeons/dungeon1.jpg' },
+                  { id: 'forest', name: 'Crimson Forest (F2)', x: '35%', y: '40%', desc: 'Cursed red woods. Level 5+', image: '/dungeons/dungeon2.jpg' },
+                  { id: 'cathedral', name: 'Cathedral (F2 Boss)', x: '55%', y: '60%', desc: 'Throne of Vampire Lord Vlad. Level 10+', image: '/dungeons/dungeon3.jpg' },
+                  { id: 'forge', name: 'Dragon Forge (F3)', x: '72%', y: '25%', desc: 'Volcanic magma ovens. Level 15+', image: '/dungeons/dungeon4.jpg' },
+                  { id: 'sanctum', name: 'Inner Sanctum (F4 Boss)', x: '88%', y: '75%', desc: 'Sleeping tomb of Grave Dragun. Level 20+', image: '/dungeons/dungeon1.jpg' }
                 ].map(node => {
                   const isSelected = selectedMapNode === node.id;
                   return (
@@ -2080,6 +2269,19 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
 
                 {/* Selected Node Details Pane */}
                 <div className="absolute bottom-3 left-3 right-3 bg-zinc-950/90 border border-zinc-900 p-3 rounded-lg backdrop-blur-md flex items-center justify-between text-xs font-mono">
+                  <div className="flex gap-4 items-center">
+                    {['crypts', 'forest', 'cathedral', 'forge', 'sanctum'].includes(selectedMapNode) && (
+                      <img 
+                        src={
+                          selectedMapNode === 'crypts' ? '/dungeons/dungeon1.jpg' :
+                          selectedMapNode === 'forest' ? '/dungeons/dungeon2.jpg' :
+                          selectedMapNode === 'cathedral' ? '/dungeons/dungeon3.jpg' :
+                          selectedMapNode === 'forge' ? '/dungeons/dungeon4.jpg' : '/dungeons/dungeon1.jpg'
+                        }
+                        alt={selectedMapNode}
+                        className="w-16 h-16 rounded object-cover border border-zinc-800"
+                      />
+                    )}
                   <div>
                     <span className="text-[9px] text-zinc-500 block uppercase font-bold">Selected territory</span>
                     <span className="text-zinc-200 font-serif font-bold text-xs">
