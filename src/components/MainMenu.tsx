@@ -20,6 +20,14 @@ import smeltBatImg from '../assets/images/smelt_bat.jpg';
 import smelterGiantImg from '../assets/images/smelter_giant.jpg';
 import vampireLordImg from '../assets/images/vampire_lord.jpg';
 
+import quest1Img from '../assets/images/quests/quest1.jpg';
+import quest2Img from '../assets/images/quests/quest2.jpg';
+import quest3Img from '../assets/images/quests/quest3.jpg';
+
+import dungeon1Img from '../assets/images/dungeons/dungeon1.jpg';
+import dungeon2Img from '../assets/images/dungeons/dungeon2.jpg';
+import dungeon3Img from '../assets/images/dungeons/dungeon3.jpg';
+import dungeon4Img from '../assets/images/dungeons/dungeon4.jpg';
 interface MainMenuProps {
   onStartGame: (selectedClass: PlayerClass, customization: PlayerCustomization, selectedKingdom?: number) => void;
   onOpenSettings: () => void;
@@ -56,7 +64,7 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
       rewardGold: 1200,
       rewardXP: 800,
       status: 'active',
-      image: '/quests/quest1.jpg'
+      image: quest1Img
     },
     {
       id: 'lava_hatchlings',
@@ -65,7 +73,7 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
       rewardGold: 850,
       rewardXP: 500,
       status: 'active',
-      image: '/quests/quest2.jpg'
+      image: quest2Img
     },
     {
       id: 'shadow_tomb',
@@ -74,7 +82,7 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
       rewardGold: 600,
       rewardXP: 350,
       status: 'locked',
-      image: '/quests/quest3.jpg'
+      image: quest3Img
     }
   ]);
   const [completedQuests, setCompletedQuests] = useState<Set<string>>(new Set());
@@ -2240,11 +2248,11 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
 
                 {/* Interactive Map Nodes */}
                 {[
-                  { id: 'crypts', name: 'Blood Crypts (F1)', x: '15%', y: '75%', desc: 'Cold tomb of minor skeletons. Level 1+', image: '/dungeons/dungeon1.jpg' },
-                  { id: 'forest', name: 'Crimson Forest (F2)', x: '35%', y: '40%', desc: 'Cursed red woods. Level 5+', image: '/dungeons/dungeon2.jpg' },
-                  { id: 'cathedral', name: 'Cathedral (F2 Boss)', x: '55%', y: '60%', desc: 'Throne of Vampire Lord Vlad. Level 10+', image: '/dungeons/dungeon3.jpg' },
-                  { id: 'forge', name: 'Dragon Forge (F3)', x: '72%', y: '25%', desc: 'Volcanic magma ovens. Level 15+', image: '/dungeons/dungeon4.jpg' },
-                  { id: 'sanctum', name: 'Inner Sanctum (F4 Boss)', x: '88%', y: '75%', desc: 'Sleeping tomb of Grave Dragun. Level 20+', image: '/dungeons/dungeon1.jpg' }
+                  { id: 'crypts', name: 'Blood Crypts (F1)', x: '15%', y: '75%', desc: 'Cold tomb of minor skeletons. Level 1+', image: dungeon1Img },
+                  { id: 'forest', name: 'Crimson Forest (F2)', x: '35%', y: '40%', desc: 'Cursed red woods. Level 5+', image: dungeon2Img },
+                  { id: 'cathedral', name: 'Cathedral (F2 Boss)', x: '55%', y: '60%', desc: 'Throne of Vampire Lord Vlad. Level 10+', image: dungeon3Img },
+                  { id: 'forge', name: 'Dragon Forge (F3)', x: '72%', y: '25%', desc: 'Volcanic magma ovens. Level 15+', image: dungeon4Img },
+                  { id: 'sanctum', name: 'Inner Sanctum (F4 Boss)', x: '88%', y: '75%', desc: 'Sleeping tomb of Grave Dragun. Level 20+', image: dungeon1Img }
                 ].map(node => {
                   const isSelected = selectedMapNode === node.id;
                   return (
@@ -2273,10 +2281,10 @@ export default function MainMenu({ onStartGame, onOpenSettings, onContinueGame, 
                     {['crypts', 'forest', 'cathedral', 'forge', 'sanctum'].includes(selectedMapNode) && (
                       <img 
                         src={
-                          selectedMapNode === 'crypts' ? '/dungeons/dungeon1.jpg' :
-                          selectedMapNode === 'forest' ? '/dungeons/dungeon2.jpg' :
-                          selectedMapNode === 'cathedral' ? '/dungeons/dungeon3.jpg' :
-                          selectedMapNode === 'forge' ? '/dungeons/dungeon4.jpg' : '/dungeons/dungeon1.jpg'
+                          selectedMapNode === 'crypts' ? dungeon1Img :
+                          selectedMapNode === 'forest' ? dungeon2Img :
+                          selectedMapNode === 'cathedral' ? dungeon3Img :
+                          selectedMapNode === 'forge' ? dungeon4Img : dungeon1Img
                         }
                         alt={selectedMapNode}
                         className="w-16 h-16 rounded object-cover border border-zinc-800"
